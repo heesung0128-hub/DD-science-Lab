@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>쉬운 데이터 분석기 - Antigravity</title>
+    <!-- stlite 공식 CDN 스타일시트 로드 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.58.0/build/style.css" />
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #ffffff;
+        color: #1e293b;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      }
+      /* 라이트 모드 디자인 대기 화면 */
+      #loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #f8fafc;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        transition: opacity 0.5s ease;
+      }
+      .spinner {
+        border: 4px solid rgba(124, 58, 237, 0.1);
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        border-left-color: #7c3aed;
+        animation: spin 1s linear infinite;
+        margin-bottom: 20px;
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      .loading-text {
+        font-size: 1.1rem;
+        color: #7c3aed;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 최초 구동 시 Pyodide 패키지 컴파일 대기 화면 (라이트 모드) -->
+    <div id="loading-overlay">
+      <div class="spinner"></div>
+      <div class="loading-text">쉬운 데이터 분석기 구동 엔진을 초기화하는 중...</div>
+      <div style="font-size: 0.8rem; color: #64748b; margin-top: 8px;">(처음 실행 시 약 10~15초 소요될 수 있습니다)</div>
+    </div>
+
+    <div id="root"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.58.0/build/stlite.js"></script>
+    <script>
+      stlite.mount(
+        {
+          requirements: ["pandas", "scipy", "plotly"],
+          entrypoint: "streamlit_app.py",
+          files: {
+            "streamlit_app.py": `
+import streamlit as st
+import pandas as pd
+from scipy import stats
+import plotly.express as px
+import plotly.graph_objects as go
+
+st.set_page_config(page_title="고등학생용 쉬운 데이터 분석기", layout="wide")
+
+# 라이트 브랜딩 적용
+st.title("📊 고등학생을 위한 쉬운 데이터 분석기")
+st.markdown("""
+이 도구는 여러분이 관찰하고 수집한 탐구 데이터를 편리하게 분석하고 시각화할 수 있는 **웹 브라우저 전용 데이터 분석기**입니다.
+가설로 수립했던 원인(X축)과 결과(Y축) 변수가 통계적으로 진짜 의미가 있는지 바로 검증해 볼 수 있습니다!
+""")
+
+st.info("💡 **사용 방법**: 1) 관찰한 수치 데이터를 기록한 CSV 파일을 업로드합니다. 2) 비교할 두 변수를 선택합니다. 3) 계산된 상관계수와 유의확률(p-value)을 고교 탐구 보조 프로그램의 [7단계] 영역에 적어 넣으세요!")
+
+uploaded_file = st.file_uploader("📂 수집한 CSV 데이터 파일을 여기에 끌어다 놓거나 업로드하세요", type=["csv"])
+
+if uploaded_file is not None:
+    try:
+        # 데이터 리딩
+        df = pd.read_csv(uploaded_file)
+        
+        st.markdown("---")
+        st.subheader("👀 데이터 미리보기 (상위 5행)")
+        st.dataframe(df.head(), use_container_width=True)
+        
+        # 정량 변인 추출
+        numeric_columns = df.select_dtypes(include=['number']).columns.tolist()
+        
+        if len(numeric_columns) < 2:
+            st.error("⚠️ 데이터 파일에 숫자로 이루어진 변수(열)가 최소 2개 이상 필요합니다. 다른 데이터 파일로 다시 시도해 주세요.")
+        else:
+            st.markdown("---")
+            st.subheader("🎯 분석할 두 변수 매핑하기")
+            col1, col2 = st.columns(2)
+            with col1:
+                x_col = st.selectbox("X축 변수 (원인이 되는 조건값)", numeric_columns)
+            with col2:
+                y_col = st.selectbox("Y축 변수 (결과가 되는 반응값)", numeric_columns, index=min(1, len(numeric_columns)-1))
+            
+            # 결측치 정제
+            clean_df = df[[x_col, y_col]].dropna()
+            
+            if len(clean_df) < 3:
+                st.warning("⚠️ 유효한 데이터가 너무 부족합니다. (최소 3개 이상의 데이터 쌍이 존재해야 계산이 시작됩니다.)")
+            else:
+                # 피어슨 상관분석 계산
+                slope, intercept, r_value, p_value, std_err = stats.linregress(clean_df[x_col], clean_df[y_col])
+                
+                st.markdown("---")
+                st.subheader("📈 상관분석 및 가설 검증 결과")
+                
+                # 2열 매트릭스 카드 구성
+                card_col1, card_col2 = st.columns(2)
+                with card_col1:
+                    st.metric(
+                        label="상관계수 (r값, 두 변수의 관련성 세기)", 
+                        value=f"{r_value:.4f}"
+                    )
+                    st.markdown("""
+                    **상관계수(r) 해석 가이드**:
+                    *   **+0.7 ~ +1.0**: 두 변수가 서로 아주 강하게 비례함 📈
+                    *   **-1.0 ~ -0.7**: 두 변수가 서로 아주 강하게 반비례함 📉
+                    *   **-0.3 ~ +0.3**: 두 변수는 거의 연관성이 없음 (우연에 가까움) 
+                    """)
+                
+                with card_col2:
+                    st.metric(
+                        label="유의확률 (p-value, 결과의 신뢰도 수치)", 
+                        value=f"{p_value:.4f}"
+                    )
+                    st.markdown("**유의확률(p-value) 해석 가이드**:")
+                    if p_value < 0.05:
+                        st.success(f"🎉 **p-value({p_value:.4f})가 유의수준 0.05보다 작습니다!** 이 결과는 우연이 발생할 확률이 5% 미만으로, 두 변수 사이에 확실한 통계적 연관성이 성립됩니다!")
+                    else:
+                        st.info(f"💡 **p-value({p_value:.4f})가 유의수준 0.05보다 크거나 같습니다.** 두 변수가 명확히 연관되어 있음을 통계적으로 단정하기 어렵습니다. 데이터를 늘리거나 변수를 확인해 보세요.")
+                
+                # 시각화 그래프 구성
+                st.subheader("📊 시각화 그래프 및 추세선")
+                fig = px.scatter(clean_df, x=x_col, y=y_col, title=f"[{x_col}] 대비 [{y_col}]의 경향도 분포")
+                
+                # 추세선 추가
+                line_x = [clean_df[x_col].min(), clean_df[x_col].max()]
+                line_y = [slope * x + intercept for x in line_x]
+                fig.add_trace(go.Scatter(
+                    x=line_x, 
+                    y=line_y, 
+                    mode='lines', 
+                    name='통계 추세선 (경향성)', 
+                    line=dict(color='rgba(239, 68, 68, 0.9)', width=3, dash='dash')
+                ))
+                
+                # 라이트 모드에 부합하도록 플롯 스타일링
+                fig.update_layout(
+                    template="plotly_white",
+                    font=dict(color="#1e293b"),
+                    plot_bgcolor="rgba(241, 245, 249, 0.6)",
+                    paper_bgcolor="rgba(255, 255, 255, 1.0)",
+                    xaxis=dict(gridcolor="rgba(0,0,0,0.05)"),
+                    yaxis=dict(gridcolor="rgba(0,0,0,0.05)")
+                )
+                
+                st.plotly_chart(fig, use_container_width=True)
+                
+                # 텍스트 리포트 다운로드 빌드
+                result_text = f"========================================\\n"
+                result_text += f"   수학/과학 주제탐구 데이터 분석 결과지\\n"
+                result_text += f"========================================\\n\\n"
+                result_text += f"▶ 분석 변수 설정:\\n"
+                result_text += f"  - 원인 조건 변수 (X축): {x_col}\\n"
+                result_text += f"  - 결과 반응 변수 (Y축): {y_col}\\n\\n"
+                result_text += f"▶ 정량적 통계 지표:\\n"
+                result_text += f"  - 상관계수 (r): {r_value:.4f}\\n"
+                result_text += f"  - 유의확률 (p-value): {p_value:.4f}\\n\\n"
+                result_text += f"▶ 가설 검증 결과 판정:\\n"
+                if p_value < 0.05:
+                    result_text += f"  - [가설 지지] p-value가 0.05보다 작으므로 두 변수 간에 유의미한 상관성이 확증됩니다.\\n"
+                else:
+                    result_text += f"  - [가설 불지지] p-value가 0.05보다 크므로 본 가설을 통계적으로 입증하기 어렵습니다.\\n"
+                result_text += f"\\n* 본 데이터 시각화 결과는 Antigravity 탐구 도우미 플랫폼의 보고서에 표로 기입될 수 있습니다.\\n"
+                
+                st.download_button(
+                    label="💾 이 통계 분석 결과 텍스트 파일로 다운로드하기",
+                    data=result_text,
+                    file_name="data_analysis_result.txt",
+                    mime="text/plain"
+                )
+    except Exception as e:
+        st.error(f"⚠️ 데이터 파일을 읽는 과정에서 오류가 발생했습니다. 파일 형식이 정형 CSV 파일인지 확인해 주세요. (에러: {e})")
+`,
+          },
+        },
+        document.getElementById("root")
+      );
+
+      // stlite 앱(.stApp) 렌더링이 완료되면 로딩 오버레이 서서히 페이드아웃 및 제거
+      const checkStliteLoaded = setInterval(() => {
+        const app = document.querySelector(".stApp");
+        if (app) {
+          clearInterval(checkStliteLoaded);
+          const overlay = document.getElementById("loading-overlay");
+          overlay.style.opacity = "0";
+          setTimeout(() => {
+            overlay.remove();
+          }, 500);
+        }
+      }, 300);
+    </script>
+  </body>
+</html>

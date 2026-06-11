@@ -1,0 +1,22 @@
+{
+  "name": "antigravity-inquiry-helper",
+  "version": "1.0.0",
+  "description": "고등학생용 수학·과학 주제탐구 보조 프로그램",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "education",
+    "math",
+    "science",
+    "inquiry"
+  ],
+  "author": "Antigravity Dev Team",
+  "license": "MIT",
+  "devDependencies": {
+    "vite": "^5.2.0"
+  }
+}
