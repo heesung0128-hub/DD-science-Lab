@@ -1,71 +1,94 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
 
 /* ==========================================================================
-   1. 디자인 시스템 & 테마 변수 (글래스모피즘 & 최첨단 사이버 학술 테마)
+   1. heesung 디자인 시스템 토큰 선언 (Color, Spacing, Typography, Transition)
    ========================================================================== */
 :root {
-  /* 다크 테마 기본값 */
-  --bg-base: #090d16;
-  --bg-surface: #101726;
-  --bg-panel: #161f33;
-  --bg-glass: rgba(16, 23, 38, 0.65);
-  --bg-glass-active: rgba(30, 41, 59, 0.8);
-  
-  --border-glass: rgba(255, 255, 255, 0.06);
-  --border-glass-hover: rgba(255, 255, 255, 0.12);
-  --border-glow: rgba(30, 110, 122, 0.3);
-  
-  --primary: #1e6e7a;         /* 짙은 청록 (수학/과학의 신뢰성) */
-  --primary-light: #2d94a3;
-  --primary-glow: rgba(30, 110, 122, 0.25);
-  
-  --accent: #e8893f;          /* 따뜻한 주황 (AI의 가이드/활력) */
-  --accent-light: #f5a962;
-  --accent-glow: rgba(232, 137, 63, 0.25);
-  
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --text-inverse: #090d16;
-  
-  --success: #10b981;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  --radius-lg: 16px;
-  --radius-md: 12px;
+  /* 배경 */
+  --bg-app:        hsl(220, 30%, 97%);      /* 본문 전체 배경 (아주 옅은 회청색) */
+  --bg-sidebar:    hsl(222, 35%, 15%);      /* 사이드바 / 헤더 (짙은 남색) */
+  --bg-card:       hsla(0, 0%, 100%, 0.8);  /* 카드 (반투명 흰색) */
+  --bg-card-hover: hsla(0, 0%, 100%, 0.95);
+  --border-glass:  hsla(220, 20%, 50%, 0.15); /* 유리 테두리 */
+
+  /* 텍스트 */
+  --text-main:  hsl(222, 30%, 15%);   /* 본문 기본 글자 */
+  --text-muted: hsl(220, 15%, 50%);   /* 보조 설명 글자 */
+  --text-light: hsl(0, 0%, 100%);     /* 어두운 배경 위 흰 글자 */
+
+  /* 핵심 액센트 (보라색) */
+  --primary:       hsl(255, 65%, 60%);
+  --primary-hover: hsl(255, 65%, 52%);
+  --primary-light: hsl(255, 65%, 95%);        /* 옅은 보라 배경 */
+  --primary-glow:  hsla(255, 65%, 60%, 0.3);  /* 그림자/글로우용 */
+
+  --secondary:       hsl(220, 15%, 45%);
+  --secondary-hover: hsl(220, 15%, 38%);
+
+  /* 상태 색상 (각각 light 짝꿍 포함) */
+  --success: hsl(145, 60%, 42%);  --success-light: hsl(145, 60%, 94%);
+  --warning: hsl(35, 85%, 50%);   --warning-light: hsl(35, 85%, 94%);
+  --danger:  hsl(5, 75%, 55%);    --danger-light:  hsl(5, 75%, 94%);
+  --info:    hsl(195, 75%, 45%);  --info-light:    hsl(195, 75%, 94%);
+
+  /* 그림자 (3단계) */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 8px 20px -4px rgba(20, 20, 30, 0.08);
+  --shadow-lg: 0 16px 40px -10px rgba(20, 20, 30, 0.12);
+
+  /* 모서리 */
   --radius-sm: 8px;
-  --shadow-glow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  --font-sans: 'Outfit', 'Pretendard', sans-serif;
-  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --radius-md: 14px;
+  --radius-lg: 24px;
+
+  /* 전환·애니메이션 */
+  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --backdrop-blur: blur(12px);
+
+  /* 타이포그래피 */
+  --font-title: 'Outfit', 'Noto Sans KR', sans-serif;
+  --font-body:  'Inter', 'Noto Sans KR', sans-serif;
+
+  /* 기존 레거시 변수 매핑 */
+  --bg-base: var(--bg-app);
+  --bg-surface: var(--bg-card);
+  --bg-panel: var(--primary-light);
+  --bg-glass: var(--bg-card);
+  --bg-glass-active: var(--bg-card-hover);
+  --text-primary: var(--text-main);
+  --text-secondary: var(--text-muted);
+  --font-sans: var(--font-body);
+  --shadow-glow: var(--shadow-md);
+  --transition: var(--transition-smooth);
 }
 
-[data-theme="light"] {
-  /* 라이트 테마 대응 */
-  --bg-base: #f4f7f6;
-  --bg-surface: #ffffff;
-  --bg-panel: #edf2f4;
-  --bg-glass: rgba(255, 255, 255, 0.75);
-  --bg-glass-active: rgba(255, 255, 255, 0.95);
-  
-  --border-glass: rgba(30, 110, 122, 0.08);
-  --border-glass-hover: rgba(30, 110, 122, 0.16);
-  --border-glow: rgba(30, 110, 122, 0.15);
-  
-  --primary: #1e6e7a;
-  --primary-light: #164e57;
-  --primary-glow: rgba(30, 110, 122, 0.12);
-  
-  --accent: #d97724;
-  --accent-light: #b35d14;
-  --accent-glow: rgba(217, 119, 36, 0.12);
-  
-  --text-primary: #1e293b;
-  --text-secondary: #475569;
-  --text-muted: #64748b;
-  --text-inverse: #ffffff;
-  
-  --shadow-glow: 0 8px 24px 0 rgba(30, 110, 122, 0.08);
+[data-theme="dark"] {
+  --bg-app:        hsl(222, 25%, 7%);
+  --bg-sidebar:    hsl(222, 30%, 10%);
+  --bg-card:       hsla(222, 20%, 15%, 0.65);
+  --bg-card-hover: hsla(222, 20%, 18%, 0.8);
+  --border-glass:  hsla(222, 20%, 80%, 0.08);
+
+  --text-main:  hsl(220, 20%, 88%);
+  --text-muted: hsl(220, 10%, 65%);
+  --text-light: hsl(220, 20%, 95%);
+
+  --primary:       hsl(255, 75%, 66%);   /* 다크에서는 약간 더 밝고 채도 높게 */
+  --primary-hover: hsl(255, 75%, 72%);
+  --primary-light: hsl(255, 30%, 15%);   /* 다크에서는 '옅은 배경'이 어두운 보라가 됨 */
+  --primary-glow:  hsla(255, 75%, 66%, 0.4);
+
+  --secondary:       hsl(220, 10%, 55%);
+  --secondary-hover: hsl(220, 10%, 62%);
+
+  --success: hsl(145, 60%, 50%);  --success-light: hsl(145, 30%, 13%);
+  --warning: hsl(35, 85%, 58%);   --warning-light: hsl(35, 30%, 13%);
+  --danger:  hsl(5, 75%, 62%);    --danger-light:  hsl(5, 30%, 13%);
+  --info:    hsl(195, 75%, 55%);  --info-light:    hsl(195, 30%, 13%);
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.45);
 }
 
 /* ==========================================================================
@@ -137,10 +160,10 @@ header {
   gap: 12px;
 }
 .logo-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: var(--radius-sm);
-  background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--primary), hsl(190, 75%, 50%));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -302,7 +325,7 @@ header {
 }
 
 /* ==========================================================================
-   4. 메인 컨텐츠 영역 레이아웃 (60:40 좌우 분할)
+   4. 메인 컨텐츠 영역 레이아웃 (60:40 좌우 분할 - heesung 다크 사이드바 + 라이트 본문 대비)
    ========================================================================== */
 .main-layout-container {
   display: grid;
@@ -318,35 +341,67 @@ header {
 
 .left-form-section {
   background: var(--bg-glass);
-  backdrop-filter: blur(20px);
+  backdrop-filter: var(--backdrop-blur);
+  -webkit-backdrop-filter: var(--backdrop-blur);
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-lg);
   padding: 32px;
-  box-shadow: var(--shadow-glow);
+  box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
+  transition: var(--transition-smooth);
 }
 
 .right-ai-section {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  background: var(--bg-sidebar);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-lg);
+  transition: var(--transition-smooth);
+}
+
+/* 다크 테마일 경우에는 우측 섹션도 본문과 통일 */
+[data-theme="dark"] .right-ai-section {
+  background: var(--bg-sidebar); /* 다크 모드용 더 어두운 톤 */
 }
 
 /* ==========================================================================
-   5. 우측 AI 패널 컴포넌트군
+   5. 우측 AI 패널 컴포넌트군 (Glassmorphism 적용)
    ========================================================================== */
 .ai-card {
-  background: var(--bg-glass);
-  backdrop-filter: blur(20px);
+  background: var(--bg-card);
+  backdrop-filter: var(--backdrop-blur);
+  -webkit-backdrop-filter: var(--backdrop-blur);
   border: 1px solid var(--border-glass);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   padding: 20px;
-  box-shadow: var(--shadow-glow);
-  transition: var(--transition);
+  box-shadow: var(--shadow-md);
+  transition: var(--transition-smooth);
+}
+/* 라이트 모드일 때 다크 사이드바인 우측 섹션 내부 카드를 강제 다크 글래스로 고정 */
+:root:not([data-theme="dark"]) .right-ai-section .ai-card {
+  background: hsla(222, 20%, 15%, 0.65);
+  border-color: hsla(222, 20%, 80%, 0.08);
+  color: hsl(220, 20%, 88%);
+}
+:root:not([data-theme="dark"]) .right-ai-section .ai-card h3,
+:root:not([data-theme="dark"]) .right-ai-section .ai-card h4 {
+  color: hsl(220, 20%, 95%);
+}
+:root:not([data-theme="dark"]) .right-ai-section .ai-card .text-muted,
+:root:not([data-theme="dark"]) .right-ai-section .ai-card .field-helper-tip {
+  color: hsl(220, 10%, 65%);
+}
+:root:not([data-theme="dark"]) .right-ai-section .summary-content-box {
+  background: rgba(0, 0, 0, 0.2);
+  color: hsl(220, 10%, 80%);
 }
 .ai-card:hover {
-  border-color: var(--border-glass-hover);
+  box-shadow: var(--shadow-lg);
+  border-color: hsla(255, 65%, 60%, 0.25);
 }
 
 /* 상단: 이전 단계 요약 */
