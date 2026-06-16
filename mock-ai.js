@@ -34,6 +34,38 @@ const MockAI = {
     // API 키 확인
     let apiKey = localStorage.getItem("gemini_api_key");
     if (!apiKey) {
+      // 오프라인 모의(Simulation) 모드일 때도 학생의 지망 학과(department) 및 진로(career) 정보를 파싱하여 
+      // 그에 최적화된 맞춤 키워드 6종을 동적으로 추천하도록 지능화합니다.
+      const dept = (department || "").trim();
+      const car = (career || "").trim();
+      const subj = (subject || "").trim();
+      
+      const combined = `${dept} ${car} ${subj}`;
+      
+      if (combined.match(/컴퓨터|인공지능|소프트웨어|코딩|알고리즘|IT|개발자|보안|웹|앱/)) {
+        return ["인공지능", "기계학습", "신경망모델", "경로최적화", "알고리즘", "빅데이터"];
+      }
+      if (combined.match(/의학|생명|의예|의약|약학|간호|바이오|유전자|세포|생물|신경|뇌/)) {
+        return ["효소활성", "바이오센서", "유전자분석", "세포대사", "감염병확산", "생체모사"];
+      }
+      if (combined.match(/화학|신소재|배터리|분자|나노/)) {
+        return ["촉매반응", "고분자재료", "전기화학", "나노입자", "에너지밀도", "유기화학"];
+      }
+      if (combined.match(/기계|로봇|전자|전기|반도체|우주|항공|물리|역학/)) {
+        return ["센서계측", "MBL", "수치시뮬레이션", "신소재", "역학적에너지", "전자기유도"];
+      }
+      if (combined.match(/환경|기후|대기|생태|지구|기상|지질/)) {
+        return ["기후변화", "탄소배출", "대기질분석", "생태계보존", "삼투현상", "신재생에너지"];
+      }
+      if (combined.match(/경제|경영|금융|주식|통계|사회|소비자/)) {
+        return ["통계가설", "회귀분석", "상관관계", "네트워크분석", "소비자행동", "공공데이터"];
+      }
+      if (combined.match(/수학|기하|수치|행렬|대수/)) {
+        return ["삼각함수", "수열의합", "시뮬레이션", "테셀레이션", "카오스이론", "수치계산"];
+      }
+      if (combined.match(/예술|디자인|미술|음악|체육/)) {
+        return ["드로잉비율", "음향데시벨", "서사구조", "스토리텔링", "작화앵글", "생체역학"];
+      }
       return fallbackKeywords;
     }
 
