@@ -22,6 +22,12 @@
   --primary-light: hsl(255, 65%, 95%);        /* 옅은 보라 배경 */
   --primary-glow:  hsla(255, 65%, 60%, 0.3);  /* 그림자/글로우용 */
 
+  /* 액센트 (주황색) */
+  --accent:        hsl(25, 90%, 55%);
+  --accent-hover:  hsl(25, 90%, 47%);
+  --accent-light:  hsl(25, 90%, 95%);
+  --accent-glow:   hsla(25, 90%, 55%, 0.3);
+
   --secondary:       hsl(220, 15%, 45%);
   --secondary-hover: hsl(220, 15%, 38%);
 
@@ -77,6 +83,12 @@
   --primary-hover: hsl(255, 75%, 72%);
   --primary-light: hsl(255, 30%, 15%);   /* 다크에서는 '옅은 배경'이 어두운 보라가 됨 */
   --primary-glow:  hsla(255, 75%, 66%, 0.4);
+
+  /* 액센트 (주황색) */
+  --accent:        hsl(25, 95%, 60%);
+  --accent-hover:  hsl(25, 95%, 67%);
+  --accent-light:  hsl(25, 40%, 15%);
+  --accent-glow:   hsla(25, 95%, 60%, 0.4);
 
   --secondary:       hsl(220, 10%, 55%);
   --secondary-hover: hsl(220, 10%, 62%);
@@ -143,7 +155,8 @@ body {
 
 header {
   border-bottom: 1px solid var(--border-glass);
-  background: var(--bg-glass);
+  background: var(--bg-sidebar); /* permanently dark navy */
+  color: #ffffff;
   backdrop-filter: blur(20px);
   padding: 16px 24px;
   position: sticky;
@@ -175,22 +188,24 @@ header {
 .logo-title-group h1 {
   font-size: 1.15rem;
   font-weight: 700;
+  color: #ffffff;
   letter-spacing: -0.5px;
 }
 .logo-title-group p {
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  color: hsla(220, 20%, 95%, 0.6);
 }
 
 .header-meta-controls {
   display: flex;
   align-items: center;
   gap: 16px;
+  color: #ffffff;
 }
 .curriculum-tag {
-  background: rgba(30, 110, 122, 0.15);
-  border: 1px solid var(--primary);
-  color: var(--primary-light);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
   padding: 4px 10px;
   border-radius: 20px;
   font-size: 0.75rem;
@@ -200,9 +215,9 @@ header {
   gap: 6px;
 }
 .curriculum-toggle-btn {
-  background: var(--bg-panel);
-  border: 1px solid var(--border-glass);
-  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
   font-size: 0.75rem;
   padding: 4px 10px;
   border-radius: var(--radius-sm);
@@ -210,28 +225,29 @@ header {
   transition: var(--transition);
 }
 .curriculum-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
   border-color: var(--primary);
-  color: var(--text-primary);
+  color: #ffffff;
 }
 
 .btn-theme-toggle,
 .btn-settings-toggle {
   background: transparent;
-  border: 1px solid var(--border-glass);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   width: 36px;
   height: 36px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-primary);
+  color: #ffffff;
   cursor: pointer;
   transition: var(--transition);
 }
 .btn-theme-toggle:hover,
 .btn-settings-toggle:hover {
-  background: var(--bg-panel);
-  border-color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #ffffff;
 }
 
 /* ==========================================================================
@@ -329,7 +345,7 @@ header {
    ========================================================================== */
 .main-layout-container {
   display: grid;
-  grid-template-columns: 3fr 2fr;
+  grid-template-columns: 2fr 3fr; /* Left sidebar: 2fr, Right form: 3fr */
   flex: 1;
   max-width: 1600px;
   width: 100%;
@@ -340,6 +356,7 @@ header {
 }
 
 .left-form-section {
+  grid-column: 2; /* Move to the right column */
   background: var(--bg-glass);
   backdrop-filter: var(--backdrop-blur);
   -webkit-backdrop-filter: var(--backdrop-blur);
@@ -353,6 +370,7 @@ header {
 }
 
 .right-ai-section {
+  grid-column: 1; /* Move to the left column (sidebar) */
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -385,19 +403,38 @@ header {
 :root:not([data-theme="dark"]) .right-ai-section .ai-card {
   background: hsla(222, 20%, 15%, 0.65);
   border-color: hsla(222, 20%, 80%, 0.08);
-  color: hsl(220, 20%, 88%);
+  color: hsl(220, 20%, 90%);
 }
 :root:not([data-theme="dark"]) .right-ai-section .ai-card h3,
 :root:not([data-theme="dark"]) .right-ai-section .ai-card h4 {
-  color: hsl(220, 20%, 95%);
+  color: #ffffff;
 }
 :root:not([data-theme="dark"]) .right-ai-section .ai-card .text-muted,
 :root:not([data-theme="dark"]) .right-ai-section .ai-card .field-helper-tip {
-  color: hsl(220, 10%, 65%);
+  color: hsl(220, 15%, 75%);
 }
 :root:not([data-theme="dark"]) .right-ai-section .summary-content-box {
-  background: rgba(0, 0, 0, 0.2);
-  color: hsl(220, 10%, 80%);
+  background: rgba(0, 0, 0, 0.25);
+  color: hsl(220, 20%, 90%);
+}
+/* 다크 사이드바 내의 리스트 및 핵심 텍스트 대비 향상 */
+:root:not([data-theme="dark"]) .right-ai-section .ai-guide-tab {
+  color: rgba(255, 255, 255, 0.55);
+}
+:root:not([data-theme="dark"]) .right-ai-section .ai-guide-tab.active {
+  color: #ffffff;
+  border-bottom-color: var(--primary);
+}
+:root:not([data-theme="dark"]) .right-ai-section .ai-guide-content {
+  color: hsl(220, 20%, 88%);
+}
+:root:not([data-theme="dark"]) .right-ai-section .ai-mentor-advice-box {
+  background: rgba(232, 137, 63, 0.06);
+  border-color: rgba(232, 137, 63, 0.25);
+  color: hsl(220, 20%, 90%);
+}
+:root:not([data-theme="dark"]) .right-ai-section .summary-item-line strong {
+  color: var(--accent); /* 주황색 핵심 강조 수식 */
 }
 .ai-card:hover {
   box-shadow: var(--shadow-lg);
@@ -649,27 +686,29 @@ textarea {
   font-family: var(--font-sans);
 }
 .btn-primary {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
   color: white;
+  border: none;
   box-shadow: 0 4px 15px var(--primary-glow);
 }
 .btn-primary:hover {
   filter: brightness(1.1);
-  box-shadow: 0 4px 20px rgba(30, 110, 122, 0.5);
+  box-shadow: 0 4px 20px var(--primary-glow);
 }
 .btn-secondary {
-  background: var(--bg-panel);
-  border-color: var(--border-glass);
-  color: var(--text-secondary);
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  color: var(--text-primary);
 }
 .btn-secondary:hover {
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  border-color: var(--text-secondary);
+  background: var(--bg-card-hover);
+  color: var(--primary);
+  border-color: var(--primary);
 }
 .btn-accent {
   background: linear-gradient(135deg, var(--accent) 0%, #d97724 100%);
   color: white;
+  border: none;
   box-shadow: 0 4px 12px var(--accent-glow);
 }
 .btn-accent:hover {
@@ -685,9 +724,9 @@ textarea {
 
 /* 필드 인라인 AI 추천 버튼 */
 .btn-ai-suggest-inline {
-  background: rgba(232, 137, 63, 0.08);
+  background: rgba(25, 90, 55, 0.08);
   border: 1px dashed var(--accent);
-  color: var(--accent-light);
+  color: var(--accent);
   font-size: 0.7rem;
   font-weight: 600;
   padding: 2px 8px;
@@ -1097,7 +1136,7 @@ textarea {
 }
 .meta-modal-container {
   background: var(--bg-surface);
-  border: 1px solid var(--border-glass-hover);
+  border: 1px solid var(--border-glass);
   border-radius: var(--radius-lg);
   width: 90%;
   max-width: 600px;
@@ -1114,7 +1153,7 @@ textarea {
 .meta-modal-title {
   font-size: 1.35rem;
   font-weight: 800;
-  color: var(--primary-light);
+  color: var(--primary);
   margin-bottom: 12px;
   display: flex;
   align-items: center;
