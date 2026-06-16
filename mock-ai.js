@@ -84,16 +84,13 @@ const MockAI = {
 다른 텍스트 없이 오직 JSON 배열만 출력해 주세요.`;
 
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            responseMimeType: "application/json"
-          }
+          contents: [{ parts: [{ text: prompt }] }]
         })
       });
 
@@ -105,7 +102,8 @@ const MockAI = {
       const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
       
       if (textResponse) {
-        const parsed = JSON.parse(textResponse.trim());
+        let cleanJson = textResponse.replace(/```json/g, "").replace(/```/g, "").trim();
+        const parsed = JSON.parse(cleanJson);
         if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed.slice(0, 6);
         }
