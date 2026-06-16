@@ -111,7 +111,10 @@ const MockAI = {
       throw new Error("Invalid response format");
     } catch (e) {
       console.warn("Gemini suggestKeywords failed, falling back to static list.", e);
-      return fallbackKeywords;
+      const fb = [...fallbackKeywords];
+      fb.isFallback = true;
+      fb.errorMsg = e.message || String(e);
+      return fb;
     }
   },
 

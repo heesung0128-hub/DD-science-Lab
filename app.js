@@ -1538,7 +1538,7 @@ const App = {
     box.style.display = "flex";
     
     const context = {
-      subject: this.report.step_1.교과목.과목명 || "통합과학",
+      subject: this.report.step_1.교과목?.과목명 || "통합과학",
       department: this.report.step_1.학과 || "자연과학",
       career: this.report.step_1.진로 || "과학자",
       field: track,
@@ -1567,6 +1567,18 @@ const App = {
         };
         box.appendChild(btn);
       });
+
+      if (suggested.isFallback) {
+        const errDiv = document.createElement("div");
+        errDiv.style.fontSize = "0.7rem";
+        errDiv.style.color = "var(--danger)";
+        errDiv.style.marginTop = "8px";
+        errDiv.style.width = "100%";
+        errDiv.style.textAlign = "center";
+        errDiv.style.flexBasis = "100%";
+        errDiv.innerHTML = `⚠️ AI 생성 실패: ${suggested.errorMsg}`;
+        box.appendChild(errDiv);
+      }
     } catch (e) {
       console.error(e);
       box.innerHTML = "<div style='font-size:0.75rem; color:var(--danger); padding:8px;'>추천 키워드를 가져오지 못했습니다.</div>";
