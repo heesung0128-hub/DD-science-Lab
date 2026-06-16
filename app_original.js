@@ -135,6 +135,17 @@ const App = {
   },
 
   /**
+   * 교육과정 수동 오버라이드 토글
+   */
+  toggleCurriculumManual: function () {
+    const current = this.report.metadata.교육과정_버전;
+    this.report.metadata.교육과정_버전 = current === "v2022" ? "v2015" : "v2022";
+    this.updateCurriculumBadge();
+    this.updateSubjectDropdown();
+    this.saveToLocalStorage();
+  },
+
+  /**
    * 교육과정 뱃지 및 메타정보 업데이트
    */
   updateCurriculumBadge: function () {
@@ -143,17 +154,19 @@ const App = {
     
     // 자동 계산 버전
     const computedVersion = getDefaultCurriculum(year, grade);
-    this.report.metadata.교육과정_버전 = computedVersion;
+    
+    // 최종 확정 버전 (수동 변경 대응)
+    const activeVersion = this.report.metadata.교육과정_버전 || computedVersion;
     
     const badgeEl = document.getElementById("curriculum-indicator");
-    if (computedVersion === "v2022") {
+    if (activeVersion === "v2022") {
       badgeEl.innerHTML = "✨ 2022 개정 교육과정 적용 학년";
-      badgeEl.style.borderColor = "#8b5cf6";
-      badgeEl.style.color = "#c084fc";
+      badgeEl.style.borderColor = "var(--primary)";
+      badgeEl.style.color = "var(--primary-light)";
     } else {
       badgeEl.innerHTML = "📝 2015 개정 교육과정 대상 학년";
-      badgeEl.style.borderColor = "#f97316";
-      badgeEl.style.color = "#fdba74";
+      badgeEl.style.borderColor = "var(--accent)";
+      badgeEl.style.color = "var(--accent-light)";
     }
   },
 
@@ -239,10 +252,12 @@ const App = {
       }
     };
 
-    // 연도 + 학년 기반 교육과정 자동 재계산
+    // 연도 + 학년 기반 교육과정 자동 재계산 (수동 상태가 아닐 때 갱신)
     const computedVersion = getDefaultCurriculum(2026, grade);
-    this.report.metadata.교육과정_버전 = computedVersion;
-    this.updateCurriculumBadge();
+    if (!localStorage.getItem("curriculum_manual_clicked")) {
+      this.report.metadata.교육과정_버전 = computedVersion;
+      this.updateCurriculumBadge();
+    }
 
     // 학년·과목 분류 정합성 검증 (경고 배너 노출 - 차단 안 함)
     const warnMsg = validateGradeAndSubject(grade, subjectCat);
@@ -893,76 +908,11 @@ const App = {
       ];
 
       // 검색 키워드 필터링
-      let filtered = pool.filter(item => 
+      const filtered = pool.filter(item => 
         item.title.includes(q) || 
         item.author.includes(q) || 
         q.split(" ").some(word => item.title.includes(word))
       );
-
-      // 모의 검색 결과 다양화 및 성공 보장 (결과가 적으면 학생 프로필 연계 실시간 생성)
-      if (filtered.length < 3) {
-        const studentSubject = this.report.step_1.교과목.과목명 || "통합과학";
-        const studentDept = this.report.step_1.학과 || "이공계열";
-        const studentTopic = this.report.step_2.선택_주제 || q;
-        
-        let cleanTopic = studentTopic;
-        if (cleanTopic.length > 25) {
-          cleanTopic = cleanTopic.substring(0, 22) + "...";
-        }
-
-        const templates = [
-          {
-            title: `[과목명] 교과 연계: [검색어] 분석을 통한 정량적 상관관계 연구`,
-            author: `이은지 (대한[과목명]교육학회)`,
-            type: "학술논문",
-            difficulty: 1
-          },
-          {
-            title: `[검색어]와 청소년 [학과] 관심도가 탐구 의사결정에 미치는 영향`,
-            author: `박준영 (한국융합학회지)`,
-            type: "학술논문",
-            difficulty: 2
-          },
-          {
-            title: `[주제] 관점에서 본 [검색어]의 통계적 시뮬레이션 및 데이터 모델링`,
-            author: `최현우 (공공데이터분석포럼)`,
-            type: "기관자료",
-            difficulty: 3
-          },
-          {
-            title: `고등학교 동아리 활동을 위한 [검색어] 기초 이론 및 간이 실험 설계 가이드`,
-            author: `정민우 (전국과학교사협의회)`,
-            type: "도서",
-            difficulty: 1
-          }
-        ];
-
-        templates.forEach((tpl, idx) => {
-          let title = tpl.title
-            .replace(/\[과목명\]/g, studentSubject)
-            .replace(/\[학과\]/g, studentDept)
-            .replace(/\[검색어\]/g, q)
-            .replace(/\[주제\]/g, cleanTopic)
-            .replace(/["']/g, ""); // HTML 구조 깨짐 방지
-          
-          let author = tpl.author
-            .replace(/\[과목명\]/g, studentSubject)
-            .replace(/\[학과\]/g, studentDept);
-
-          if (filtered.some(f => f.title === title) || pool.some(p => p.title === title)) {
-            return;
-          }
-
-          filtered.push({
-            title: title,
-            author: author,
-            year: 2024 - idx,
-            type: tpl.type,
-            difficulty: tpl.difficulty,
-            url: `https://dbpia.co.kr/mock/dynamic/${idx + 1}`
-          });
-        });
-      }
 
       resultsBox.innerHTML = "";
 
@@ -1334,7 +1284,7 @@ const App = {
       1: {
         avatar: "👨‍🏫",
         html: `<p>안녕하세요! 탐구의 가장 기본인 <strong>학적 및 교과 설정</strong> 단계입니다.</p>
-               <p>탐구의 도구가 될 과목명과 희망하는 학과를 작성해 보세요. 학년을 설정해 주면 <strong>2022 개정 또는 2015 교육과정 규칙</strong>에 맞춰 최적화된 학습 기준을 로드해 올게요!</p>`
+               <p>내가 좋아하는 과목명과 학과를 작성해 보세요. 학년을 설정해 주면 <strong>2022 개정 또는 2015 교육과정 규칙</strong>에 맞춰 최적화된 학습 기준을 로드해 올게요!</p>`
       },
       2: {
         avatar: "🧪",
