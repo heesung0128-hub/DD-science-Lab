@@ -340,7 +340,7 @@
               <button class="btn-ai-suggest-inline" onclick="App.openAiSuggestInline(3, '핵심질문', 'input-step3-question')">✨ AI 추천 후보</button>
             </div>
             <input type="text" id="input-step3-question" placeholder="예: '공기 저항이 존재할 때 탄성 계수와 충돌 속도의 선형비는 성립하는가?'" oninput="App.handleGenericInput(3)">
-            <p class="field-helper-tip" style="color: var(--accent-light);">📝 질문 단계입니다. 추측에 따른 결론(답)은 다음 4단계 가설 설정에서 구체화합니다.</p>
+            <p class="field-helper-tip" style="color: var(--accent);">📝 질문 단계입니다. 추측에 따른 결론(답)은 다음 4단계 가설 설정에서 구체화합니다.</p>
           </div>
         </div>
       </div>
@@ -380,7 +380,7 @@
           </div>
           
           <div style="margin-top: 12px; margin-bottom: 12px;">
-            <button class="btn btn-secondary" id="btn-ai-variables-suggest" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; border-color: var(--accent); color: var(--accent-light);" onclick="App.suggestVariablesWithAi()">
+            <button class="btn btn-secondary" id="btn-ai-variables-suggest" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; border-color: var(--accent); color: var(--accent); font-weight: 700;" onclick="App.suggestVariablesWithAi()">
               🔮 AI가 분석한 주제 맞춤형 정량 변인 설계 추천 받기
             </button>
           </div>
@@ -483,12 +483,12 @@
           <div class="form-group-section" style="border: 1px solid var(--accent); background: rgba(124, 58, 237, 0.02); padding: 16px; border-radius: var(--radius-md); margin-top: 24px; box-sizing: border-box;">
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
               <span style="font-size: 1.2rem;">📊</span>
-              <strong style="color: var(--accent-light); font-size: 0.9rem;">[수집한 데이터로 쉽고 빠르게 통계 분석하기]</strong>
+              <strong style="color: var(--accent); font-size: 0.9rem;">[수집한 데이터로 쉽고 빠르게 통계 분석하기]</strong>
             </div>
             <p style="font-size: 0.75rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 12px; margin-top: 0;">
               여러분이 관찰하거나 수집한 데이터(CSV 파일)가 있다면, 쉬운 데이터 분석 도구를 사용해 변수들이 서로 어떤 관계를 맺고 있는지 그래프와 정량 수치로 편리하게 알아볼 수 있습니다.
             </p>
-            <button class="btn btn-secondary" onclick="App.openStreamlitAnalyzer()" style="width: 100%; border-color: var(--accent); color: var(--accent-light); display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: var(--transition);">
+            <button class="btn btn-secondary" onclick="App.openStreamlitAnalyzer()" style="width: 100%; border-color: var(--accent); color: var(--accent); display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: var(--transition);">
               🚀 쉬운 데이터 분석기 실행하기 (새 창)
             </button>
           </div>
@@ -520,7 +520,7 @@
 
         <!-- 쉬운 데이터 분석 결과 입력 영역 -->
         <div class="form-group-section" style="border: 1px solid var(--border-glass); padding: 16px; border-radius: var(--radius-md); box-sizing: border-box;">
-          <div class="form-group-section-title" style="margin-bottom: 8px; font-size: 0.85rem; color: var(--primary-light); font-weight: 700; display: flex; align-items: center; gap: 6px;">
+          <div class="form-group-section-title" style="margin-bottom: 8px; font-size: 0.85rem; color: var(--primary); font-weight: 700; display: flex; align-items: center; gap: 6px;">
             <span>📈</span> [선택] 데이터 분석 결과 입력하기 (상관계수 및 유의확률)
           </div>
           <p style="font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 12px; margin-top: 0; line-height: 1.45;">
@@ -565,7 +565,7 @@
               <label for="input-step7-final-conclusion">최종 결론</label>
             </div>
             <textarea id="input-step7-final-conclusion" placeholder="탐구를 종결하며, 최종 도출된 한 문장의 중심 결론을 학생만의 어조로 작성해 주세요." oninput="App.handleStep7Input()"></textarea>
-            <p class="field-helper-tip" style="color: var(--accent-light);">⚠️ AI는 결론을 대신 내려주지 않습니다. 학생이 모은 데이터에 입각하여 주도적으로 최종 문장을 작성해야 합니다.</p>
+            <p class="field-helper-tip" style="color: var(--accent);">⚠️ AI는 결론을 대신 내려주지 않습니다. 학생이 모은 데이터에 입각하여 주도적으로 최종 문장을 작성해야 합니다.</p>
           </div>
         </div>
 
@@ -741,7 +741,7 @@
       </p>
 
       <div class="meta-check-section" style="margin-bottom: 20px;">
-        <label for="settings-gemini-key" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.85rem; color: var(--primary-light);">Gemini API 키</label>
+        <label for="settings-gemini-key" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.85rem; color: var(--primary);">Gemini API 키</label>
         <input type="password" id="settings-gemini-key" placeholder="AI API 키를 입력하세요 (AIzaSy...)" style="width: 100%; padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-panel); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; outline: none; box-sizing: border-box; transition: var(--transition);">
         <p class="field-helper-tip" style="margin-top: 8px; font-size: 0.75rem; color: var(--text-muted);">
           * 키를 입력하지 않거나 비워둘 경우, AI 주제 제안 시 <strong>모의 체험(Simulated) AI 모드</strong>로 자동 폴백하여 고품질의 어울리는 주제들을 다양하게 제안합니다.

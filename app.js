@@ -1072,7 +1072,7 @@ const App = {
     const root = document.getElementById("ai-suggest-popover-root");
     const container = document.getElementById("popover-candidates-list");
     
-    container.innerHTML = "<div style='padding:16px; text-align:center; color: var(--primary-light); font-size:0.75rem; font-weight:600;'>🔮 AI가 탐구 맥락을 파싱하여 맞춤형 예안 후보를 설계하는 중입니다...</div>";
+    container.innerHTML = "<div style='padding:16px; text-align:center; color: var(--primary); font-size:0.75rem; font-weight:600;'>🔮 AI가 탐구 맥락을 파싱하여 맞춤형 예안 후보를 설계하는 중입니다...</div>";
     root.style.display = "block";
 
     try {
