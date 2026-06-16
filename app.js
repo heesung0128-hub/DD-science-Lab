@@ -92,6 +92,100 @@ const App = {
     // 테마 설정 초기화
     document.documentElement.setAttribute("data-theme", this.theme);
 
+/**
+ * Antigravity 애플리케이션 코어 컨트롤러 (상태 관리, 내비게이션, 프리필, UI 바인딩)
+ */
+
+// 학생의 희망 진로 계열별로 제안하는 핵심 교과 융합형 학술 추천 키워드
+const SUGGESTED_KEYWORDS = {
+  "자연과학": ["기후변화", "빅데이터", "역학적에너지", "삼투현상", "카오스이론", "유기화학"],
+  "공학": ["알고리즘", "인공지능", "센서계측", "MBL", "수치시뮬레이션", "신소재"],
+  "의약·바이오": ["효소활성", "바이오센서", "감염병확산", "세포대사", "유전자분석", "생체모사"],
+  "사회과학": ["통계가설", "회귀분석", "네트워크분석", "상관관계", "소비자행동", "공공데이터"],
+  "인문과학": ["문헌비교", "역사적사례", "텍스트마이닝", "문화예술", "사료검증", "비교분석"],
+  "예체능·융합": ["드로잉비율", "음향데시벨", "서사구조", "테셀레이션", "스토리텔링", "작화앵글"]
+};
+
+const App = {
+  // 현재 보고서 상태 데이터 객체 (5.4 보고서 데이터 모델 규격 준수)
+  report: {
+    student_name: "",
+    student_id: "",
+    user_id: "student_user",
+    report_id: "report_temp_1",
+    step_1: {
+      학년: 1,
+      학급: 1,
+      계열: "자연과학",
+      학과: "",
+      진로: "",
+      흥미영역: "수학·과학 융합",
+      교과목: {
+        교과: "과학",
+        분류: "공통",
+        과목명: "통합과학1"
+      }
+    },
+    step_2: {
+      키워드: [],
+      동기: "",
+      AI_제안_주제: [],
+      선택_주제: "",
+      탐구유형: "experiment"
+    },
+    step_3: {
+      동기: "",
+      목적: "",
+      핵심질문: ""
+    },
+    step_4: {
+      가설: "",
+      근거: "",
+      변수: {}
+    },
+    step_5: {
+      절차_방법: "",
+      도구_자료: "",
+      신뢰성_타당성: "",
+      자기점검_결과: null
+    },
+    step_6: {
+      자료_수집: "",
+      자료_처리_분석: "",
+      핵심_수치_관찰: ""
+    },
+    step_7: {
+      사실_정리: "",
+      가설_검증: {
+        판정: "지지",
+        근거: "",
+        최종_결론: ""
+      },
+      한계_후속: ""
+    },
+    step_8: {
+      참고문헌: []
+    },
+    metadata: {
+      교육과정_버전: "v2022",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      current_step: 1
+    }
+  },
+
+  currentGuideTab: "help",
+  theme: "light",
+  autoSaveTimer: null,
+  activeSuggestTargetId: null,
+
+  /**
+   * 초기화 함수
+   */
+  init: function () {
+    // 테마 설정 초기화
+    document.documentElement.setAttribute("data-theme", this.theme);
+
     // 로컬 스토리지 로드 시도
     const saved = localStorage.getItem("antigravity_report_save");
     if (saved) {
@@ -135,17 +229,6 @@ const App = {
   },
 
   /**
-   * 교육과정 수동 오버라이드 토글
-   */
-  toggleCurriculumManual: function () {
-    const current = this.report.metadata.교육과정_버전;
-    this.report.metadata.교육과정_버전 = current === "v2022" ? "v2015" : "v2022";
-    this.updateCurriculumBadge();
-    this.updateSubjectDropdown();
-    this.saveToLocalStorage();
-  },
-
-  /**
    * 교육과정 뱃지 및 메타정보 업데이트
    */
   updateCurriculumBadge: function () {
@@ -154,19 +237,17 @@ const App = {
     
     // 자동 계산 버전
     const computedVersion = getDefaultCurriculum(year, grade);
-    
-    // 최종 확정 버전 (수동 변경 대응)
-    const activeVersion = this.report.metadata.교육과정_버전 || computedVersion;
+    this.report.metadata.교육과정_버전 = computedVersion;
     
     const badgeEl = document.getElementById("curriculum-indicator");
-    if (activeVersion === "v2022") {
+    if (computedVersion === "v2022") {
       badgeEl.innerHTML = "✨ 2022 개정 교육과정 적용 학년";
-      badgeEl.style.borderColor = "var(--primary)";
-      badgeEl.style.color = "var(--primary-light)";
+      badgeEl.style.borderColor = "#8b5cf6";
+      badgeEl.style.color = "#c084fc";
     } else {
       badgeEl.innerHTML = "📝 2015 개정 교육과정 대상 학년";
-      badgeEl.style.borderColor = "var(--accent)";
-      badgeEl.style.color = "var(--accent-light)";
+      badgeEl.style.borderColor = "#f97316";
+      badgeEl.style.color = "#fdba74";
     }
   },
 
@@ -252,12 +333,10 @@ const App = {
       }
     };
 
-    // 연도 + 학년 기반 교육과정 자동 재계산 (수동 상태가 아닐 때 갱신)
+    // 연도 + 학년 기반 교육과정 자동 재계산
     const computedVersion = getDefaultCurriculum(2026, grade);
-    if (!localStorage.getItem("curriculum_manual_clicked")) {
-      this.report.metadata.교육과정_버전 = computedVersion;
-      this.updateCurriculumBadge();
-    }
+    this.report.metadata.교육과정_버전 = computedVersion;
+    this.updateCurriculumBadge();
 
     // 학년·과목 분류 정합성 검증 (경고 배너 노출 - 차단 안 함)
     const warnMsg = validateGradeAndSubject(grade, subjectCat);
@@ -908,11 +987,76 @@ const App = {
       ];
 
       // 검색 키워드 필터링
-      const filtered = pool.filter(item => 
+      let filtered = pool.filter(item => 
         item.title.includes(q) || 
         item.author.includes(q) || 
         q.split(" ").some(word => item.title.includes(word))
       );
+
+      // 모의 검색 결과 다양화 및 성공 보장 (결과가 적으면 학생 프로필 연계 실시간 생성)
+      if (filtered.length < 3) {
+        const studentSubject = this.report.step_1.교과목.과목명 || "통합과학";
+        const studentDept = this.report.step_1.학과 || "이공계열";
+        const studentTopic = this.report.step_2.선택_주제 || q;
+        
+        let cleanTopic = studentTopic;
+        if (cleanTopic.length > 25) {
+          cleanTopic = cleanTopic.substring(0, 22) + "...";
+        }
+
+        const templates = [
+          {
+            title: `[과목명] 교과 연계: [검색어] 분석을 통한 정량적 상관관계 연구`,
+            author: `이은지 (대한[과목명]교육학회)`,
+            type: "학술논문",
+            difficulty: 1
+          },
+          {
+            title: `[검색어]와 청소년 [학과] 관심도가 탐구 의사결정에 미치는 영향`,
+            author: `박준영 (한국융합학회지)`,
+            type: "학술논문",
+            difficulty: 2
+          },
+          {
+            title: `[주제] 관점에서 본 [검색어]의 통계적 시뮬레이션 및 데이터 모델링`,
+            author: `최현우 (공공데이터분석포럼)`,
+            type: "기관자료",
+            difficulty: 3
+          },
+          {
+            title: `고등학교 동아리 활동을 위한 [검색어] 기초 이론 및 간이 실험 설계 가이드`,
+            author: `정민우 (전국과학교사협의회)`,
+            type: "도서",
+            difficulty: 1
+          }
+        ];
+
+        templates.forEach((tpl, idx) => {
+          let title = tpl.title
+            .replace(/\[과목명\]/g, studentSubject)
+            .replace(/\[학과\]/g, studentDept)
+            .replace(/\[검색어\]/g, q)
+            .replace(/\[주제\]/g, cleanTopic)
+            .replace(/["']/g, ""); // HTML 구조 깨짐 방지
+          
+          let author = tpl.author
+            .replace(/\[과목명\]/g, studentSubject)
+            .replace(/\[학과\]/g, studentDept);
+
+          if (filtered.some(f => f.title === title) || pool.some(p => p.title === title)) {
+            return;
+          }
+
+          filtered.push({
+            title: title,
+            author: author,
+            year: 2024 - idx,
+            type: tpl.type,
+            difficulty: tpl.difficulty,
+            url: `https://dbpia.co.kr/mock/dynamic/${idx + 1}`
+          });
+        });
+      }
 
       resultsBox.innerHTML = "";
 
@@ -1056,81 +1200,6 @@ const App = {
       container.innerHTML = `<div style='padding:16px; text-align:center; color:var(--danger); font-size:0.75rem;'>AI 추천 생성 실패: ${e.message}</div>`;
     }
   },
-
-
-  closeAiSuggestInlineModal: function () {
-    document.getElementById("ai-suggest-popover-root").style.display = "none";
-  },
-
-  /**
-   * 내비게이션 제어
-   */
-  navigateToStep: function (stepNum) {
-    // 5단계에서 6단계로 전진할 때만 자기점검 모달 활성화 트리거
-    if (this.report.metadata.current_step === 5 && stepNum === 6) {
-      this.triggerSelfCheckModal();
-      return;
-    }
-
-    this.report.metadata.current_step = stepNum;
-    
-    // UI 전환
-    document.querySelectorAll(".form-step-wrapper").forEach(w => w.classList.remove("active"));
-    document.getElementById(`step-wrapper-${stepNum}`).classList.add("active");
-
-    document.querySelectorAll(".progress-step-item").forEach((item, idx) => {
-      item.classList.remove("active");
-      if (idx + 1 === stepNum) {
-        item.classList.add("active");
-      }
-      if (idx + 1 < stepNum) {
-        item.classList.add("completed");
-      } else {
-        item.classList.remove("completed");
-      }
-    });
-
-    this.updateProgress();
-    this.updateNavigationButtons();
-    this.updatePrefillSummaryCards();
-    this.updateMentorAdvice();
-    this.updateGuideArea();
-
-    // 2단계 진입 시 키워드가 비어있다면 추천 키워드 리스트를 자동으로 노출하고 적합성 검사
-    if (stepNum === 2) {
-      if (this.report.step_2.키워드.length === 0) {
-        const box = document.getElementById("recommended-keywords-box");
-        if (box) {
-          box.style.display = "none";
-          this.showRecommendedKeywords();
-        }
-      }
-      this.checkTopicCurriculumAlignment();
-    }
-
-    // 6단계 진입 시, prefill 가동
-    if (stepNum === 6) {
-      this.prefillStep6Values();
-    }
-
-    this.saveToLocalStorage();
-  },
-
-  navigateNext: function () {
-    const current = this.report.metadata.current_step;
-    if (current < 8) {
-      // P0/P1 가이드에 따라 완화된 검증 적용하되 친절하게 탭 전환
-      this.navigateToStep(current + 1);
-    }
-  },
-
-  navigatePrev: function () {
-    const current = this.report.metadata.current_step;
-    if (current > 1) {
-      this.navigateToStep(current - 1);
-    }
-  },
-
   updateProgress: function () {
     const current = this.report.metadata.current_step;
     const progressFill = document.getElementById("progress-line-fill");

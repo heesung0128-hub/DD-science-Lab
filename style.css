@@ -214,21 +214,7 @@ header {
   align-items: center;
   gap: 6px;
 }
-.curriculum-toggle-btn {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #ffffff;
-  font-size: 0.75rem;
-  padding: 4px 10px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: var(--transition);
-}
-.curriculum-toggle-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: var(--primary);
-  color: #ffffff;
-}
+/* Curriculum manual toggle button removed */
 
 .btn-theme-toggle,
 .btn-settings-toggle {
@@ -357,6 +343,7 @@ header {
 
 .left-form-section {
   grid-column: 2; /* Move to the right column */
+  grid-row: 1;    /* Explicitly place in row 1 */
   background: var(--bg-glass);
   backdrop-filter: var(--backdrop-blur);
   -webkit-backdrop-filter: var(--backdrop-blur);
@@ -371,6 +358,7 @@ header {
 
 .right-ai-section {
   grid-column: 1; /* Move to the left column (sidebar) */
+  grid-row: 1;    /* Explicitly place in row 1 */
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -477,7 +465,7 @@ header {
   border-bottom: none;
 }
 .summary-item-line strong {
-  color: var(--primary-light);
+  color: var(--accent);
 }
 
 /* 중단: AI 멘토 조언 */
@@ -596,9 +584,9 @@ header {
 .form-group-section-title {
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--primary-light);
+  color: var(--primary);
   margin-bottom: 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--border-glass);
   padding-bottom: 6px;
 }
 
@@ -624,7 +612,7 @@ header {
 .prefill-badge {
   background: rgba(30, 110, 122, 0.1);
   border: 1px solid var(--primary-glow);
-  color: var(--primary-light);
+  color: var(--primary);
   font-size: 0.65rem;
   padding: 1px 6px;
   border-radius: var(--radius-sm);
@@ -908,7 +896,7 @@ textarea {
 .variable-slot-label {
   font-size: 0.8rem;
   font-weight: 700;
-  color: var(--primary-light);
+  color: var(--primary);
 }
 
 /* 5단계: 상단 4단계 가설/변수 요약 리드온리 카드 */
@@ -922,7 +910,7 @@ textarea {
 .hypothesis-summary-panel h4 {
   font-size: 0.8rem;
   font-weight: 700;
-  color: var(--primary-light);
+  color: var(--primary);
   margin-bottom: 8px;
 }
 .hypothesis-summary-panel p {
@@ -1050,7 +1038,7 @@ textarea {
 .popover-header h3 {
   font-size: 1.05rem;
   font-weight: 700;
-  color: var(--accent-light);
+  color: var(--accent);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1086,7 +1074,7 @@ textarea {
 }
 .hypothesis-check-result-box h4 {
   font-size: 0.95rem;
-  color: var(--accent-light);
+  color: var(--accent);
   margin-bottom: 14px;
 }
 .check-criteria-grid {
@@ -1103,7 +1091,7 @@ textarea {
 .check-criteria-card h5 {
   font-size: 0.75rem;
   font-weight: 700;
-  color: var(--primary-light);
+  color: var(--primary);
   margin-bottom: 6px;
 }
 .check-criteria-card p {
