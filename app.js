@@ -344,7 +344,7 @@ const App = {
     const section = document.getElementById("phase-b-section");
     const container = document.getElementById("phase-b-content");
     section.style.display = "block";
-    container.innerHTML = "<div style='padding:20px; text-align:center; color: var(--accent-light); font-weight: 600;'>🤖 AI가 교육과정 DB를 검색하고 키워드 적합성을 엄격히 판정하는 중입니다...</div>";
+    container.innerHTML = "<div style='padding:20px; text-align:center; color: var(--accent); font-weight: 600;'>🤖 AI가 교육과정 DB를 검색하고 키워드 적합성을 엄격히 판정하는 중입니다...</div>";
 
     try {
       // Mock AI -> Real AI 제안 목록 비동기 호출
@@ -372,7 +372,7 @@ const App = {
           let elementsBadge = "";
           if (item.matched_content_elements && item.matched_content_elements.length > 0) {
             elementsBadge = `<div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:4px;">
-              ${item.matched_content_elements.map(e => `<span style="background:rgba(30,110,122,0.15); border:1px solid var(--primary); color:var(--primary-light); font-size:0.65rem; padding:1px 6px; border-radius:10px;">📚 ${e}</span>`).join("")}
+              ${item.matched_content_elements.map(e => `<span style="background:rgba(30,110,122,0.15); border:1px solid var(--primary); color:var(--primary); font-size:0.65rem; padding:1px 6px; border-radius:10px;">📚 ${e}</span>`).join("")}
             </div>`;
           }
 
@@ -483,7 +483,7 @@ const App = {
         const fallAlert = document.createElement("div");
         fallAlert.style.marginTop = "12px";
         fallAlert.style.fontSize = "0.75rem";
-        fallAlert.style.color = "var(--accent-light)";
+        fallAlert.style.color = "var(--accent)";
         fallAlert.innerHTML = `ℹ️ <strong>모의 체험(Simulated) AI 모드</strong>로 키워드 분석 및 정합성 검정이 완료되었습니다. API 키 연동을 원하시면 우측 상단 ⚙️ 설정을 클릭하세요.`;
         container.appendChild(fallAlert);
       }
@@ -610,7 +610,7 @@ const App = {
 
       row.innerHTML = `
         <div class="variable-slot-label-group" style="margin-bottom:6px;">
-          <strong class="variable-slot-label" style="font-size:0.85rem; color:var(--primary-light);">${vName}</strong>
+          <strong class="variable-slot-label" style="font-size:0.85rem; color:var(--primary);">${vName}</strong>
           ${guideText ? `<span class="variable-slot-guide" style="font-size:0.7rem; color:var(--text-muted); display:block; margin-top:2px;">ℹ️ ${guideText}</span>` : ""}
         </div>
         <div>
@@ -764,7 +764,7 @@ const App = {
 
     const subject = this.report.step_1.교과목.과목명;
     
-    listContainer.innerHTML = "<div style='padding:20px; text-align:center; width:100%; color:var(--primary-light); font-weight:600;'>🤖 AI가 탐구 계획의 교과 연계 타당성을 다각도로 검증하는 중입니다...</div>";
+    listContainer.innerHTML = "<div style='padding:20px; text-align:center; width:100%; color:var(--primary); font-weight:600;'>🤖 AI가 탐구 계획의 교과 연계 타당성을 다각도로 검증하는 중입니다...</div>";
     commentArea.innerHTML = "";
     modal.style.display = "flex";
 
@@ -1523,40 +1523,54 @@ const App = {
   /**
    * 진로 맞춤형 추천 키워드 제안 UI 제어
    */
-  showRecommendedKeywords: function () {
+  showRecommendedKeywords: async function () {
     const track = this.report.step_1.계열 || "자연과학";
     const box = document.getElementById("recommended-keywords-box");
     
     if (!box) return;
     
-    if (box.style.display === "flex") {
+    if (box.style.display === "flex" && box.innerHTML !== "" && !box.innerHTML.includes("로딩 중")) {
       box.style.display = "none";
       return;
     }
     
-    const suggested = SUGGESTED_KEYWORDS[track] || SUGGESTED_KEYWORDS["자연과학"];
-    box.innerHTML = "";
-    
-    suggested.forEach(kw => {
-      const btn = document.createElement("button");
-      btn.className = "btn";
-      btn.style.padding = "6px 12px";
-      btn.style.fontSize = "0.75rem";
-      btn.style.margin = "0";
-      btn.style.background = "var(--bg-panel)";
-      btn.style.borderColor = "var(--border-glass)";
-      btn.style.color = "var(--text-secondary)";
-      btn.style.borderRadius = "20px";
-      btn.style.cursor = "pointer";
-      btn.style.transition = "var(--transition)";
-      btn.textContent = `+ #${kw}`;
-      btn.onclick = () => {
-        App.addRecommendedKeyword(kw);
-      };
-      box.appendChild(btn);
-    });
-    
+    box.innerHTML = "<div style='font-size:0.75rem; color:var(--accent); padding:8px;'>🪄 AI 맞춤형 추천 키워드 로딩 중...</div>";
     box.style.display = "flex";
+    
+    const context = {
+      subject: this.report.step_1.교과목.과목명 || "통합과학",
+      department: this.report.step_1.학과 || "자연과학",
+      career: this.report.step_1.진로 || "과학자",
+      field: track,
+      fallbackKeywords: SUGGESTED_KEYWORDS[track] || SUGGESTED_KEYWORDS["자연과학"]
+    };
+
+    try {
+      const suggested = await MockAI.suggestKeywords(context);
+      box.innerHTML = "";
+      
+      suggested.forEach(kw => {
+        const btn = document.createElement("button");
+        btn.className = "btn";
+        btn.style.padding = "6px 12px";
+        btn.style.fontSize = "0.75rem";
+        btn.style.margin = "0";
+        btn.style.background = "var(--bg-panel)";
+        btn.style.borderColor = "var(--border-glass)";
+        btn.style.color = "var(--text-secondary)";
+        btn.style.borderRadius = "20px";
+        btn.style.cursor = "pointer";
+        btn.style.transition = "var(--transition)";
+        btn.textContent = `+ #${kw}`;
+        btn.onclick = () => {
+          App.addRecommendedKeyword(kw);
+        };
+        box.appendChild(btn);
+      });
+    } catch (e) {
+      console.error(e);
+      box.innerHTML = "<div style='font-size:0.75rem; color:var(--danger); padding:8px;'>추천 키워드를 가져오지 못했습니다.</div>";
+    }
   },
 
   addRecommendedKeyword: function (kw) {

@@ -26,6 +26,66 @@ const CURRICULUM_GUIDELINES = {
 
 const MockAI = {
   /**
+   * 진로 맞춤형 키워드 제안 (Gemini API 연계)
+   */
+  suggestKeywords: async function (context) {
+    const { subject, department, career, field, fallbackKeywords } = context;
+    
+    // API 키 확인
+    let apiKey = localStorage.getItem("gemini_api_key");
+    if (!apiKey) {
+      return fallbackKeywords;
+    }
+
+    const prompt = `당신은 고등학교 탐구활동 설계 멘토입니다.
+다음 학생의 프로필을 분석하여, 수학 및 과학적 주제탐구에 활용하기 적합한 '탐구 융합 키워드' 6개를 추천해 주세요.
+- 탐구 교과목: ${subject}
+- 희망 학과: ${department}
+- 희망 진로: ${career}
+- 진로 계열: ${field}
+
+추천할 키워드는 다음 조건을 충족해야 합니다:
+1. 고등학교 수준에서 실제 실험, 통계 분석, 수치 모델링 등으로 발전시킬 수 있는 구체적인 정량화 가능 키워드여야 합니다.
+2. 예시: '기후변화', '삼투현상', '수치시뮬레이션', '효소활성', '회귀분석', 'MBL센서'
+3. 영문 기호나 수식이 포함되지 않고 오직 한글 명사 형태여야 합니다.
+4. 반드시 JSON 배열 형식으로만 응답해 주세요. 예: ["키워드1", "키워드2", "키워드3", "키워드4", "키워드5", "키워드6"]
+다른 텍스트 없이 오직 JSON 배열만 출력해 주세요.`;
+
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            responseMimeType: "application/json"
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      
+      if (textResponse) {
+        const parsed = JSON.parse(textResponse.trim());
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.slice(0, 6);
+        }
+      }
+      throw new Error("Invalid response format");
+    } catch (e) {
+      console.warn("Gemini suggestKeywords failed, falling back to static list.", e);
+      return fallbackKeywords;
+    }
+  },
+
+  /**
    * 2단계 Phase B: AI 주제 제안 (Real LLM API 통합)
    */
   suggestTopics: async function (context) {
