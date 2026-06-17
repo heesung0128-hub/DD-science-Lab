@@ -84,6 +84,7 @@ const App = {
   theme: "light",
   autoSaveTimer: null,
   activeSuggestTargetId: null,
+  defaultReportTemplate: null, // 새 탐구 추가 시 템플릿 복제용
 
   /**
    * 초기화 함수
@@ -92,11 +93,18 @@ const App = {
     // 테마 설정 초기화
     document.documentElement.setAttribute("data-theme", this.theme);
 
+    // 템플릿 복제용 기본 구조 보존
+    if (!this.defaultReportTemplate) {
+      this.defaultReportTemplate = JSON.parse(JSON.stringify(this.report));
+    }
+
     // 로그인 세션 확인
     const currentUser = localStorage.getItem("antigravity_current_user");
     if (!currentUser) {
       // 로그인 창 강제 띄우기
       document.getElementById("auth-modal-root").style.display = "flex";
+      const selector = document.getElementById("inquiry-selector-container");
+      if (selector) selector.style.display = "none";
       return;
     }
 
@@ -107,12 +115,45 @@ const App = {
         const usersDb = JSON.parse(usersDbRaw);
         const userRecord = usersDb[currentUser];
         if (userRecord) {
-          if (userRecord.report) {
-            this.report = userRecord.report;
+          // 1:N 구조 마이그레이션 대응
+          if (!userRecord.reports) {
+            userRecord.reports = [];
+            if (userRecord.report) {
+              const legacyRep = userRecord.report;
+              legacyRep.report_id = legacyRep.report_id || "rep_" + Date.now();
+              legacyRep.metadata.created_at = legacyRep.metadata.created_at || new Date().toISOString();
+              legacyRep.metadata.updated_at = legacyRep.metadata.updated_at || new Date().toISOString();
+              userRecord.reports.push(legacyRep);
+              userRecord.active_report_id = legacyRep.report_id;
+              delete userRecord.report;
+            }
           }
-          // 이름과 학번을 데이터 구조에 강제 갱신
-          this.report.student_name = userRecord.student_name;
-          this.report.student_id = userRecord.student_id;
+
+          // 비어 있는 경우 새 탐구 보장
+          if (userRecord.reports.length === 0) {
+            const newRep = this.createNewReportStructure(userRecord.student_name, userRecord.student_id);
+            userRecord.reports.push(newRep);
+            userRecord.active_report_id = newRep.report_id;
+          }
+
+          if (!userRecord.active_report_id) {
+            userRecord.active_report_id = userRecord.reports[0].report_id;
+          }
+
+          let activeRep = userRecord.reports.find(r => r.report_id === userRecord.active_report_id);
+          if (!activeRep) {
+            activeRep = userRecord.reports[0];
+            userRecord.active_report_id = activeRep.report_id;
+          }
+
+          // 이름과 학번 강제 보장 및 동기화
+          activeRep.student_name = userRecord.student_name;
+          activeRep.student_id = userRecord.student_id;
+          
+          this.report = activeRep;
+
+          // 세션 상태 데이터베이스 업데이트 반영
+          localStorage.setItem("antigravity_users_db", JSON.stringify(usersDb));
 
           // 프로필 바인딩
           const profileBadge = document.getElementById("user-profile-badge");
@@ -121,6 +162,9 @@ const App = {
             profileDisplay.textContent = `${userRecord.student_id} ${userRecord.student_name}`;
             profileBadge.style.display = "flex";
           }
+
+          // 탐구과제 드롭다운 목록 생성 및 노출
+          this.renderInquiryList();
         }
       } catch (e) {
         console.error("사용자 DB 파싱 오류", e);
@@ -230,8 +274,24 @@ const App = {
   handleStep1Input: function () {
     const nameEl = document.getElementById("input-student-name");
     const idEl = document.getElementById("input-student-id");
-    this.report.student_name = nameEl ? nameEl.value.trim() : "";
-    this.report.student_id = idEl ? idEl.value.trim() : "";
+    
+    // 비활성화 상태이므로 로컬 로그인 세션 기반 데이터 강제 고정
+    const currentUser = localStorage.getItem("antigravity_current_user");
+    if (currentUser) {
+      const usersDbRaw = localStorage.getItem("antigravity_users_db");
+      if (usersDbRaw) {
+        try {
+          const usersDb = JSON.parse(usersDbRaw);
+          if (usersDb[currentUser]) {
+            this.report.student_name = usersDb[currentUser].student_name;
+            this.report.student_id = usersDb[currentUser].student_id;
+          }
+        } catch(e){}
+      }
+    }
+    
+    if (!this.report.student_name && nameEl) this.report.student_name = nameEl.value.trim();
+    if (!this.report.student_id && idEl) this.report.student_id = idEl.value.trim();
 
     const grade = parseInt(document.getElementById("input-grade").value);
     const cls = parseInt(document.getElementById("input-class").value);
@@ -1239,11 +1299,21 @@ const App = {
   restoreFormValues: function () {
     const r = this.report;
 
-    // 1단계
+    // 1단계 - 이름 및 학번 자동 프리필 & 비활성화(disabled) 고정
     const nameEl = document.getElementById("input-student-name");
     const idEl = document.getElementById("input-student-id");
-    if (nameEl) nameEl.value = r.student_name || "";
-    if (idEl) idEl.value = r.student_id || "";
+    if (nameEl) {
+      nameEl.value = r.student_name || "";
+      nameEl.disabled = true;
+      nameEl.style.background = "rgba(255,255,255,0.04)";
+      nameEl.style.cursor = "not-allowed";
+    }
+    if (idEl) {
+      idEl.value = r.student_id || "";
+      idEl.disabled = true;
+      idEl.style.background = "rgba(255,255,255,0.04)";
+      idEl.style.cursor = "not-allowed";
+    }
 
     document.getElementById("input-grade").value = r.step_1.학년;
     document.getElementById("input-class").value = r.step_1.학급 || 1;
@@ -1480,17 +1550,31 @@ const App = {
 
     this.report.metadata.updated_at = new Date().toISOString();
     
-    // 1. 사용자 DB 업데이트
+    // 1. 사용자 DB 업데이트 (1:N 다중 탐구 대응)
     const usersDbRaw = localStorage.getItem("antigravity_users_db");
     if (usersDbRaw) {
       try {
         const usersDb = JSON.parse(usersDbRaw);
-        if (usersDb[currentUser]) {
-          this.report.student_name = usersDb[currentUser].student_name;
-          this.report.student_id = usersDb[currentUser].student_id;
+        const userRecord = usersDb[currentUser];
+        if (userRecord && userRecord.reports) {
+          // 회원 정보 이름/학번 동기화 보장
+          this.report.student_name = userRecord.student_name;
+          this.report.student_id = userRecord.student_id;
           
-          usersDb[currentUser].report = this.report;
+          // 현재 활성 탐구 고유 ID
+          const activeId = userRecord.active_report_id || this.report.report_id;
+          const idx = userRecord.reports.findIndex(r => r.report_id === activeId);
+          if (idx !== -1) {
+            userRecord.reports[idx] = this.report;
+          } else {
+            userRecord.reports.push(this.report);
+          }
+          userRecord.active_report_id = activeId;
+          
           localStorage.setItem("antigravity_users_db", JSON.stringify(usersDb));
+          
+          // 드롭다운 텍스트 실시간 동기화
+          this.renderInquiryList();
         }
       } catch (e) {
         console.error("사용자 DB 업데이트 실패", e);
@@ -1525,6 +1609,131 @@ const App = {
   openFinalPreview: function () {
     this.saveToLocalStorage();
     PDFExport.openPreview(this.report);
+  },
+
+  /**
+   * 1:N 다중 탐구 제어 헬퍼 및 핸들러
+   */
+  createNewReportStructure: function (name, studentId) {
+    if (!this.defaultReportTemplate) {
+      this.defaultReportTemplate = JSON.parse(JSON.stringify(this.report));
+    }
+    const defaultRep = JSON.parse(JSON.stringify(this.defaultReportTemplate));
+    defaultRep.report_id = "rep_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5);
+    defaultRep.student_name = name;
+    defaultRep.student_id = studentId;
+    defaultRep.metadata.created_at = new Date().toISOString();
+    defaultRep.metadata.updated_at = new Date().toISOString();
+    return defaultRep;
+  },
+
+  renderInquiryList: function () {
+    const container = document.getElementById("inquiry-selector-container");
+    const select = document.getElementById("inquiry-select");
+    if (!container || !select) return;
+
+    const currentUser = localStorage.getItem("antigravity_current_user");
+    if (!currentUser) {
+      container.style.display = "none";
+      return;
+    }
+
+    container.style.display = "flex";
+    select.innerHTML = "";
+
+    const usersDbRaw = localStorage.getItem("antigravity_users_db");
+    if (usersDbRaw) {
+      try {
+        const usersDb = JSON.parse(usersDbRaw);
+        const userRecord = usersDb[currentUser];
+        if (userRecord && userRecord.reports) {
+          userRecord.reports.forEach(r => {
+            const opt = document.createElement("option");
+            opt.value = r.report_id;
+            
+            const subject = r.step_1?.교과목?.과목명 || "과목미정";
+            const topic = r.step_2?.선택_주제 || "주제미정";
+            const shortTopic = topic.length > 15 ? topic.substring(0, 15) + "..." : topic;
+            
+            opt.textContent = `[${subject}] ${shortTopic}`;
+            if (r.report_id === userRecord.active_report_id) {
+              opt.selected = true;
+            }
+            select.appendChild(opt);
+          });
+        }
+      } catch (e) {
+        console.error("탐구 목록 렌더링 중 오류:", e);
+      }
+    }
+  },
+
+  handleInquiryChange: function () {
+    const select = document.getElementById("inquiry-select");
+    if (!select) return;
+
+    const newReportId = select.value;
+    const currentUser = localStorage.getItem("antigravity_current_user");
+    if (!currentUser) return;
+
+    // 현재 내용 임시 저장
+    this.saveToLocalStorage();
+
+    const usersDbRaw = localStorage.getItem("antigravity_users_db");
+    if (usersDbRaw) {
+      try {
+        const usersDb = JSON.parse(usersDbRaw);
+        const userRecord = usersDb[currentUser];
+        if (userRecord && userRecord.reports) {
+          userRecord.active_report_id = newReportId;
+          const activeRep = userRecord.reports.find(r => r.report_id === newReportId);
+          if (activeRep) {
+            this.report = activeRep;
+            localStorage.setItem("antigravity_users_db", JSON.stringify(usersDb));
+            
+            // 데이터 갱신 및 내비게이션 초기화
+            this.step = 1;
+            this.updateViews();
+            this.renderInquiryList();
+            alert(`📂 탐구 과제가 [${this.report.step_1?.교과목?.과목명 || "과목미정"}] 과목으로 변경되었습니다.`);
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  },
+
+  createNewInquiry: function () {
+    const currentUser = localStorage.getItem("antigravity_current_user");
+    if (!currentUser) return;
+
+    // 현재 내용 저장
+    this.saveToLocalStorage();
+
+    const usersDbRaw = localStorage.getItem("antigravity_users_db");
+    if (usersDbRaw) {
+      try {
+        const usersDb = JSON.parse(usersDbRaw);
+        const userRecord = usersDb[currentUser];
+        if (userRecord && userRecord.reports) {
+          const newRep = this.createNewReportStructure(userRecord.student_name, userRecord.student_id);
+          userRecord.reports.push(newRep);
+          userRecord.active_report_id = newRep.report_id;
+          
+          this.report = newRep;
+          localStorage.setItem("antigravity_users_db", JSON.stringify(usersDb));
+
+          // 1단계로 리다이렉트
+          this.step = 1;
+          this.updateViews();
+          this.renderInquiryList();
+          alert("➕ 새로운 주제탐구 과제가 생성되었습니다! 1단계에서 탐구할 과목을 세팅해 주세요.");
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
   },
 
   /**
@@ -1893,21 +2102,20 @@ const App = {
       return;
     }
     
-    // 새 사용자 생성 (기본 리포트 스키마 탑재)
-    const defaultReport = JSON.parse(JSON.stringify(this.report));
-    defaultReport.student_name = name;
-    defaultReport.student_id = studentId;
-    defaultReport.step_1.학과 = "";
-    defaultReport.step_1.진로 = "";
-    defaultReport.step_2.키워드 = [];
-    defaultReport.step_2.동기 = "";
-    defaultReport.step_2.선택_주제 = "";
+    // 새 사용자 생성 (1:N 다중 탐구 스펙으로 가입 시 1개 자동 편입)
+    const defaultRep = this.createNewReportStructure(name, studentId);
+    defaultRep.step_1.학과 = "";
+    defaultRep.step_1.진로 = "";
+    defaultRep.step_2.키워드 = [];
+    defaultRep.step_2.동기 = "";
+    defaultRep.step_2.선택_주제 = "";
     
     usersDb[id] = {
       password: pw,
       student_name: name,
       student_id: studentId,
-      report: defaultReport
+      reports: [defaultRep],
+      active_report_id: defaultRep.report_id
     };
     
     localStorage.setItem("antigravity_users_db", JSON.stringify(usersDb));
@@ -1939,7 +2147,13 @@ const App = {
     } catch (e) {}
     
     const user = usersDb[currentUser];
-    if (!user || !user.report) {
+    let targetReport = this.report;
+    if (user && user.reports) {
+      const activeRep = user.reports.find(r => r.report_id === user.active_report_id);
+      if (activeRep) targetReport = activeRep;
+    }
+    
+    if (!targetReport) {
       alert("저장된 보고서 데이터를 찾을 수 없습니다.");
       return;
     }

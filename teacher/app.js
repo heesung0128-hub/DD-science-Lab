@@ -46,12 +46,23 @@ const App = {
         const usersDb = JSON.parse(usersDbRaw);
         for (const userId in usersDb) {
           const userRecord = usersDb[userId];
-          if (userRecord && userRecord.report) {
-            // 학생 이름/학번 유실 방지 보정
-            const rep = { ...userRecord.report };
-            rep.student_name = rep.student_name || userRecord.student_name || "이름미상";
-            rep.student_id = rep.student_id || userRecord.student_id || "학번미상";
-            studentReports.push(rep);
+          if (userRecord) {
+            // 1. 다중 탐구(reports)가 있는 경우 건별 로드
+            if (userRecord.reports && Array.isArray(userRecord.reports)) {
+              userRecord.reports.forEach(rep => {
+                const r = { ...rep };
+                r.student_name = r.student_name || userRecord.student_name || "이름미상";
+                r.student_id = r.student_id || userRecord.student_id || "학번미상";
+                studentReports.push(r);
+              });
+            } 
+            // 2. 단일 탐구(legacy report)만 있는 경우의 마이그레이션 호환 로드
+            else if (userRecord.report) {
+              const r = { ...userRecord.report };
+              r.student_name = r.student_name || userRecord.student_name || "이름미상";
+              r.student_id = r.student_id || userRecord.student_id || "학번미상";
+              studentReports.push(r);
+            }
           }
         }
       } catch (e) {
@@ -64,8 +75,12 @@ const App = {
       isMock = true;
     }
 
-    // 학번 순으로 정렬
-    studentReports.sort((a, b) => String(a.student_id || "").localeCompare(String(b.student_id || "")));
+    // 학번 순 정렬 후 동일 학번 시 과목명으로 정렬
+    studentReports.sort((a, b) => {
+      const idComp = String(a.student_id || "").localeCompare(String(b.student_id || ""));
+      if (idComp !== 0) return idComp;
+      return String(a.step_1?.교과목?.과목명 || "").localeCompare(String(b.step_1?.교과목?.과목명 || ""));
+    });
 
     this.students = studentReports.map((rep) => {
       const studentState = {

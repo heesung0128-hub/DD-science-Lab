@@ -32,6 +32,15 @@
     </div>
     
     <div class="header-meta-controls">
+      <!-- 다중 탐구 셀렉터 추가 -->
+      <div id="inquiry-selector-container" style="display: none; align-items: center; gap: 8px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-glass); padding: 4px 8px; border-radius: 20px;">
+        <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">📂 탐구 과제:</span>
+        <select id="inquiry-select" onchange="App.handleInquiryChange()" style="padding: 2px 6px; font-size: 0.8rem; background: var(--bg-primary); border: 1px solid var(--border-glass); border-radius: 4px; color: var(--text-primary); cursor: pointer; max-width: 150px; outline: none; font-weight: 600;">
+          <!-- 동적 생성 -->
+        </select>
+        <button onclick="App.createNewInquiry()" style="background: var(--accent); border: none; color: white; font-size: 0.75rem; cursor: pointer; padding: 2px 8px; font-weight: bold; border-radius: 4px; transition: var(--transition);" title="새 탐구 생성">➕ 새 탐구</button>
+      </div>
+
       <div id="user-profile-badge" class="curriculum-tag" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-glass); display: none; align-items: center; gap: 8px;">
         <span id="user-profile-display" style="font-weight: 600; color: var(--accent);">-</span>
         <button onclick="App.logoutUser()" style="background: none; border: none; color: #ef4444; font-size: 0.75rem; cursor: pointer; padding: 2px 6px; font-weight: bold; transition: var(--transition);" title="로그아웃">로그아웃</button>
