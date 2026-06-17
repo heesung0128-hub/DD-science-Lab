@@ -90,6 +90,29 @@ const App = {
    * 초기화 함수
    */
   init: function () {
+    // 0. URL 동기화 파라미터 감지 및 자동 로드 (선생님이 학생용 공유 링크 배포 시 적용)
+    const urlParams = new URLSearchParams(window.location.search);
+    const syncConfig = urlParams.get("sync");
+    if (syncConfig) {
+      try {
+        const decoded = JSON.parse(atob(syncConfig));
+        if (decoded.dbUrl) {
+          localStorage.setItem("firebase_db_url", decoded.dbUrl);
+          localStorage.setItem("firebase_api_key", decoded.apiKey || "");
+          localStorage.setItem("firebase_project_id", decoded.projectId || "");
+          console.log("🔗 공유 링크를 통해 실시간 클라우드 DB 설정이 자동으로 세팅되었습니다.");
+        }
+      } catch (err) {
+        console.error("동기화 공유 파라미터 해석 중 오류:", err);
+      }
+      // 주소창에서 동기화 파라미터 제거 (깔끔한 UI 유지)
+      const cleanUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
+
+    // Firebase 초기화 호출
+    this.initFirebase();
+
     // 테마 설정 초기화
     document.documentElement.setAttribute("data-theme", this.theme);
 
@@ -106,6 +129,31 @@ const App = {
       const selector = document.getElementById("inquiry-selector-container");
       if (selector) selector.style.display = "none";
       return;
+    }
+
+    // Firebase 실시간 클라우드 동기화 풀(Pull) 시도
+    if (this.isCloudEnabled && this.db) {
+      this.db.ref("users/" + currentUser).once("value").then(snapshot => {
+        const val = snapshot.val();
+        if (val) {
+          const usersDbRaw = localStorage.getItem("antigravity_users_db") || "{}";
+          let usersDb = {};
+          try { usersDb = JSON.parse(usersDbRaw); } catch(e) {}
+          usersDb[currentUser] = val;
+          localStorage.setItem("antigravity_users_db", JSON.stringify(usersDb));
+          
+          const activeId = val.active_report_id || (val.reports && val.reports[0]?.report_id);
+          const activeRep = val.reports?.find(r => r.report_id === activeId) || val.reports?.[0];
+          if (activeRep) {
+            this.report = activeRep;
+            this.restoreFormValues();
+            this.renderInquiryList();
+            console.log("☁️ Firebase 클라우드 DB로부터 최신 학생 데이터를 동기화 로드했습니다.");
+          }
+        }
+      }).catch(err => {
+        console.warn("Firebase 실시간 동기화 Pulling 실패 (로컬 모드 진행):", err);
+      });
     }
 
     // 로그인 되어 있는 경우: 사용자 프로필 표시 및 데이터 복원
@@ -227,6 +275,32 @@ const App = {
   toggleTheme: function () {
     this.theme = this.theme === "dark" ? "light" : "dark";
     document.documentElement.setAttribute("data-theme", this.theme);
+  },
+
+  initFirebase: function () {
+    const dbUrl = localStorage.getItem("firebase_db_url");
+    const apiKey = localStorage.getItem("firebase_api_key");
+    const projectId = localStorage.getItem("firebase_project_id");
+
+    if (dbUrl && window.firebase) {
+      try {
+        if (firebase.apps.length === 0) {
+          firebase.initializeApp({
+            apiKey: apiKey || "",
+            projectId: projectId || "",
+            databaseURL: dbUrl
+          });
+        }
+        this.db = firebase.database();
+        this.isCloudEnabled = true;
+        console.log("📡 Firebase Realtime Database가 성공적으로 연동되었습니다.");
+      } catch (err) {
+        console.error("Firebase 초기화 중 예외 발생:", err);
+        this.isCloudEnabled = false;
+      }
+    } else {
+      this.isCloudEnabled = false;
+    }
   },
 
   /**
@@ -1611,6 +1685,12 @@ const App = {
           userRecord.active_report_id = activeId;
           
           localStorage.setItem("antigravity_users_db", JSON.stringify(usersDb));
+
+          // Firebase 실시간 클라우드 동기화 (비동기 업로드)
+          if (this.isCloudEnabled && this.db) {
+            this.db.ref("users/" + currentUser).set(userRecord)
+              .catch(err => console.warn("Firebase 실시간 동기화 업로드 실패:", err));
+          }
           
           // 드롭다운 텍스트 실시간 동기화
           this.renderInquiryList();
@@ -1850,6 +1930,17 @@ const App = {
       document.getElementById("settings-openai-key").value = localStorage.getItem("openai_api_key") || "";
       document.getElementById("settings-claude-key").value = localStorage.getItem("claude_api_key") || "";
       document.getElementById("settings-cors-proxy").value = localStorage.getItem("cors_proxy_url") || "";
+      
+      // Firebase 연동 정보 로드
+      if (document.getElementById("settings-firebase-url")) {
+        document.getElementById("settings-firebase-url").value = localStorage.getItem("firebase_db_url") || "";
+      }
+      if (document.getElementById("settings-firebase-key")) {
+        document.getElementById("settings-firebase-key").value = localStorage.getItem("firebase_api_key") || "";
+      }
+      if (document.getElementById("settings-firebase-project")) {
+        document.getElementById("settings-firebase-project").value = localStorage.getItem("firebase_project_id") || "";
+      }
 
       // 제공자별 화면 레이아웃 토글 및 모델 목록 갱신
       this.onSettingsProviderChange();
@@ -1941,6 +2032,25 @@ const App = {
     
     if (corsProxy) localStorage.setItem("cors_proxy_url", corsProxy);
     else localStorage.removeItem("cors_proxy_url");
+
+    // Firebase 연동 정보 업데이트
+    if (document.getElementById("settings-firebase-url")) {
+      const firebaseDbUrl = document.getElementById("settings-firebase-url").value.trim();
+      const firebaseApiKey = document.getElementById("settings-firebase-key").value.trim();
+      const firebaseProjectId = document.getElementById("settings-firebase-project").value.trim();
+
+      if (firebaseDbUrl) localStorage.setItem("firebase_db_url", firebaseDbUrl);
+      else localStorage.removeItem("firebase_db_url");
+
+      if (firebaseApiKey) localStorage.setItem("firebase_api_key", firebaseApiKey);
+      else localStorage.removeItem("firebase_api_key");
+
+      if (firebaseProjectId) localStorage.setItem("firebase_project_id", firebaseProjectId);
+      else localStorage.removeItem("firebase_project_id");
+
+      // Firebase 재연동
+      this.initFirebase();
+    }
     
     // 안내 팝업
     let statusMsg = `AI 제공자가 [${provider === 'gemini' ? '구글 Gemini' : provider === 'openai' ? 'OpenAI ChatGPT' : '안드로픽 Claude'}](${model})로 설정되었습니다.\n`;
@@ -2217,6 +2327,12 @@ const App = {
     
     localStorage.setItem("antigravity_users_db", JSON.stringify(usersDb));
     localStorage.setItem("antigravity_current_user", id);
+
+    // Firebase 실시간 클라우드 동기화 (회원가입 시 업로드)
+    if (this.isCloudEnabled && this.db) {
+      this.db.ref("users/" + id).set(usersDb[id])
+        .catch(err => console.warn("Firebase 회원가입 동기화 실패:", err));
+    }
     
     alert(`🎉 회원가입 및 로그인이 완료되었습니다!\n이름: ${name} (학번: ${studentId})`);
     document.getElementById("auth-modal-root").style.display = "none";

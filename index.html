@@ -10,6 +10,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
   <!-- FontAwesome 6.4.0 CDN -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Firebase SDK Compat -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
   <!-- 프리미엄 스타일시트 연동 -->
   <link rel="stylesheet" href="style.css">
 </head>
@@ -803,10 +806,34 @@
       </div>
 
       <!-- Fallback info -->
-      <div class="meta-check-section" style="margin-bottom: 20px;">
+      <div class="meta-check-section" style="margin-bottom: 12px;">
         <p class="field-helper-tip" style="margin-top: 8px; font-size: 0.75rem; color: var(--text-muted); line-height: 1.45;">
           * 선택된 AI 공급자의 API 키를 비워둘 경우, AI 제안 시 <strong>모의 체험(Simulated) AI 모드</strong>로 자동 폴백하여 고품질의 어울리는 주제들을 설계합니다.
         </p>
+      </div>
+
+      <!-- Firebase Cloud Sync Section -->
+      <div style="border-top: 1px solid var(--border-glass); padding-top: 14px; margin-top: 12px; margin-bottom: 16px;">
+        <label style="display: block; font-weight: 700; margin-bottom: 6px; font-size: 0.85rem; color: var(--accent);">📡 Firebase 실시간 클라우드 DB 연동</label>
+        <p class="field-helper-tip" style="font-size: 0.7rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 10px;">
+          선생님이 제공한 공유 링크를 사용하지 않고 개별적으로 실시간 연동을 연결하려면 입력하세요. (비워둘 시 오프라인 모드로 자동 작동)
+        </p>
+        
+        <div style="margin-bottom: 10px;">
+          <label for="settings-firebase-url" style="display: block; font-weight: 600; margin-bottom: 4px; font-size: 0.75rem; color: var(--text-primary);">Firebase Database URL</label>
+          <input type="text" id="settings-firebase-url" placeholder="https://[프로젝트ID]-default-rtdb.firebaseio.com/" style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-panel); color: var(--text-primary); font-family: inherit; font-size: 0.8rem; outline: none; box-sizing: border-box; transition: var(--transition);">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div>
+            <label for="settings-firebase-key" style="display: block; font-weight: 600; margin-bottom: 4px; font-size: 0.75rem; color: var(--text-primary);">API Key (선택)</label>
+            <input type="password" id="settings-firebase-key" placeholder="AIzaSy..." style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-panel); color: var(--text-primary); font-family: inherit; font-size: 0.8rem; outline: none; box-sizing: border-box; transition: var(--transition);">
+          </div>
+          <div>
+            <label for="settings-firebase-project" style="display: block; font-weight: 600; margin-bottom: 4px; font-size: 0.75rem; color: var(--text-primary);">Project ID (선택)</label>
+            <input type="text" id="settings-firebase-project" placeholder="프로젝트ID" style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-panel); color: var(--text-primary); font-family: inherit; font-size: 0.8rem; outline: none; box-sizing: border-box; transition: var(--transition);">
+          </div>
+        </div>
       </div>
 
       <div class="meta-modal-footer" style="display: flex; gap: 12px; justify-content: flex-end; border-top: 1px solid var(--border-glass); padding-top: 16px;">

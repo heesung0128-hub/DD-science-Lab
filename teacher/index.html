@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>교사용 매핑·세특 보조 시스템 (Antigravity Teacher Helper)</title>
   <link rel="stylesheet" href="style.css">
+  <!-- Firebase SDK Compat -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 </head>
 <body>
 
@@ -22,6 +25,7 @@
     <div style="display:flex; gap:10px; align-items:center;">
       <button class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem;" onclick="document.documentElement.setAttribute('data-theme', document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark')">🌗 테마 전환</button>
       <button class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem; border-color:var(--primary); background:rgba(0,180,216,0.06); color:var(--primary);" onclick="App.triggerJsonImport()">📥 학생 JSON 업로드</button>
+      <button id="btn-copy-sync-link" class="btn btn-primary" style="padding:6px 12px; font-size:0.8rem; background:#10b981; border-color:#10b981; color:#ffffff; display:none;" onclick="App.copyStudentSyncLink()">🔗 학생용 공유 링크 복사</button>
       <button class="btn btn-primary" style="padding:6px 12px; font-size:0.8rem;" onclick="App.exportToNEIS()">📥 NEIS 일괄 Export (CSV)</button>
       <input type="file" id="student-json-file-input" style="display:none;" accept=".json" onchange="App.handleJsonImport(event)">
     </div>
@@ -231,8 +235,32 @@
           <input type="text" id="settings-cors-proxy" class="form-input" style="max-width:100%; width:100%; box-sizing:border-box;" placeholder="예: https://cors-anywhere.herokuapp.com/">
         </div>
 
+        <!-- Firebase Cloud Sync Section -->
+        <div style="border-top: 1px solid var(--border); padding-top: 18px; margin-top: 20px; margin-bottom: 20px;">
+          <h3 style="color:var(--text-primary); margin-bottom:8px;">📡 Firebase 실시간 클라우드 DB 연동 (실시간 인터넷 동기화)</h3>
+          <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:14px;">
+            학생 컴퓨터에서 입력한 데이터를 수동 업로드 없이 실시간으로 원격 수집하려면 Firebase Realtime Database 설정을 입력하세요. (비워둘 시 로컬 전용 모드로 자동 작동)
+          </p>
+          
+          <div style="margin-bottom: 12px;">
+            <label for="settings-firebase-url" style="display:block; font-size:0.85rem; font-weight:600; color:var(--text-primary); margin-bottom:6px;">Firebase Database URL</label>
+            <input type="text" id="settings-firebase-url" class="form-input" style="max-width:100%; width:100%; box-sizing:border-box;" placeholder="https://[프로젝트ID]-default-rtdb.firebaseio.com/">
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+              <label for="settings-firebase-key" style="display:block; font-size:0.85rem; font-weight:600; color:var(--text-primary); margin-bottom:6px;">API Key (선택)</label>
+              <input type="password" id="settings-firebase-key" class="form-input" style="max-width:100%; width:100%; box-sizing:border-box;" placeholder="AIzaSy...">
+            </div>
+            <div>
+              <label for="settings-firebase-project" style="display:block; font-size:0.85rem; font-weight:600; color:var(--text-primary); margin-bottom:6px;">Project ID (선택)</label>
+              <input type="text" id="settings-firebase-project" class="form-input" style="max-width:100%; width:100%; box-sizing:border-box;" placeholder="프로젝트ID">
+            </div>
+          </div>
+        </div>
+
         <div style="margin-top: 20px;">
-          <button class="btn btn-primary" onclick="App.saveSettingsKey()">⚙️ AI API 설정 안전 저장</button>
+          <button class="btn btn-primary" onclick="App.saveSettingsKey()">⚙️ AI 및 클라우드 설정 안전 저장</button>
         </div>
       </div>
 

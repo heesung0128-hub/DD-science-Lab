@@ -21,11 +21,40 @@ const App = {
    * 초기화 실행
    */
   init: function () {
-    // 1. API 키 복원
+    // 1. API 키 및 Firebase 클라우드 초기화
     this.geminiApiKey = localStorage.getItem("gemini_api_key") || "";
+    this.initFirebase();
 
-    // 2. 실시간 학생 데이터 로드 및 초기화
-    this.loadStudentsData();
+    // 2. Firebase 실시간 클라우드 DB 연동 리스너 활성화
+    if (this.isCloudEnabled && this.db) {
+      // 대시보드 상단 공유 링크 복사 버튼 노출 처리
+      const linkBtn = document.getElementById("btn-copy-sync-link");
+      if (linkBtn) linkBtn.style.display = "inline-flex";
+
+      this.db.ref("users").on("value", (snapshot) => {
+        const usersData = snapshot.val();
+        if (usersData) {
+          console.log("☁️ Firebase 클라우드로부터 실시간 학생 탐구 데이터를 업데이트 받았습니다.");
+          // 로컬 저장소 캐시 갱신
+          localStorage.setItem("antigravity_users_db", JSON.stringify(usersData));
+          
+          // 데이터 로드 및 UI 대시보드 강제 갱신
+          this.loadStudentsData(usersData);
+          
+          if (this.currentView === "dashboard") {
+            this.renderDashboard();
+          } else if (this.currentView === "workspace") {
+            this.renderWorkspace();
+          }
+        }
+      }, (err) => {
+        console.warn("Firebase 실시간 리스너 작동 제한 (로컬 캐시 사용):", err);
+        this.loadStudentsData();
+      });
+    } else {
+      // 오프라인 로컬 데이터 로딩
+      this.loadStudentsData();
+    }
 
     // 3. 전역 이벤트 및 단축키 바인딩
     this.bindEvents();
@@ -35,16 +64,23 @@ const App = {
   },
 
   /**
-   * 실시간 로컬 DB 데이터 로드 및 폴백 처리
+   * 실시간 로컬 DB 데이터 로드 및 폴백 처리 (Firebase 오버라이드 대응)
    */
-  loadStudentsData: function () {
+  loadStudentsData: function (usersDbOverride = null) {
     const usersDbRaw = localStorage.getItem("antigravity_users_db");
     let studentReports = [];
     let isMock = false;
 
-    if (usersDbRaw) {
+    let usersDb = usersDbOverride;
+    if (!usersDb && usersDbRaw) {
       try {
-        const usersDb = JSON.parse(usersDbRaw);
+        usersDb = JSON.parse(usersDbRaw);
+      } catch (e) {
+        console.error("LocalStorage 사용자 DB 로드 오류:", e);
+      }
+    }
+    if (usersDb) {
+      try {
         for (const userId in usersDb) {
           const userRecord = usersDb[userId];
           if (userRecord) {
@@ -67,7 +103,7 @@ const App = {
           }
         }
       } catch (e) {
-        console.error("LocalStorage 사용자 DB 로드 오류:", e);
+        console.error("사용자 DB 파싱 오류:", e);
       }
     }
 
@@ -981,6 +1017,17 @@ const App = {
     document.getElementById("settings-claude-key").value = localStorage.getItem("claude_api_key") || "";
     document.getElementById("settings-cors-proxy").value = localStorage.getItem("cors_proxy_url") || "";
 
+    // Firebase 연동 정보 로드
+    if (document.getElementById("settings-firebase-url")) {
+      document.getElementById("settings-firebase-url").value = localStorage.getItem("firebase_db_url") || "";
+    }
+    if (document.getElementById("settings-firebase-key")) {
+      document.getElementById("settings-firebase-key").value = localStorage.getItem("firebase_api_key") || "";
+    }
+    if (document.getElementById("settings-firebase-project")) {
+      document.getElementById("settings-firebase-project").value = localStorage.getItem("firebase_project_id") || "";
+    }
+
     this.onSettingsProviderChange();
 
     const savedModel = localStorage.getItem("active_ai_model");
@@ -1037,6 +1084,74 @@ const App = {
     });
   },
 
+  initFirebase: function () {
+    const dbUrl = localStorage.getItem("firebase_db_url");
+    const apiKey = localStorage.getItem("firebase_api_key");
+    const projectId = localStorage.getItem("firebase_project_id");
+
+    if (dbUrl && window.firebase) {
+      try {
+        if (firebase.apps.length === 0) {
+          firebase.initializeApp({
+            apiKey: apiKey || "",
+            projectId: projectId || "",
+            databaseURL: dbUrl
+          });
+        }
+        this.db = firebase.database();
+        this.isCloudEnabled = true;
+        console.log("📡 교사용 Firebase Realtime Database 연동 완료.");
+      } catch (err) {
+        console.error("교사용 Firebase 초기화 실패:", err);
+        this.isCloudEnabled = false;
+      }
+    } else {
+      this.isCloudEnabled = false;
+    }
+  },
+
+  copyStudentSyncLink: function () {
+    const dbUrl = localStorage.getItem("firebase_db_url");
+    const apiKey = localStorage.getItem("firebase_api_key");
+    const projectId = localStorage.getItem("firebase_project_id");
+
+    if (!dbUrl) {
+      alert("⚠️ Firebase Database URL 설정이 없습니다. 설정 메뉴에서 먼저 등록해 주세요.");
+      return;
+    }
+
+    const configObj = {
+      dbUrl: dbUrl,
+      apiKey: apiKey || "",
+      projectId: projectId || ""
+    };
+    
+    try {
+      const encoded = btoa(JSON.stringify(configObj));
+      
+      // 학생용 URL 추정 (/teacher/를 상위 경로로 환산)
+      let studentBaseUrl = window.location.origin + window.location.pathname
+        .replace("/teacher/index.html", "/index.html")
+        .replace("/teacher/", "/");
+      
+      if (!studentBaseUrl.endsWith(".html") && !studentBaseUrl.endsWith("/")) {
+        studentBaseUrl += "/";
+      }
+      
+      const fullLink = `${studentBaseUrl}?sync=${encoded}`;
+      
+      navigator.clipboard.writeText(fullLink).then(() => {
+        alert("🔗 학생용 동기화 공유 링크가 클립보드에 복사되었습니다!\n\n학생들에게 이 링크를 전달하여 열게 하면, 추가 설정 없이 실시간 클라우드 공유가 자동 작동합니다.");
+      }).catch(err => {
+        console.error("클립보드 복사 실패:", err);
+        prompt("클립보드 자동 복사에 실패했습니다. 아래 주소를 직접 복사해 사용하세요:", fullLink);
+      });
+    } catch (err) {
+      console.error("공유 링크 생성 중 에러:", err);
+      alert("공유 링크 생성 중 오류가 발생했습니다.");
+    }
+  },
+
   saveSettingsKey: function () {
     const provider = document.getElementById("settings-ai-provider").value;
     const model = document.getElementById("settings-ai-model").value;
@@ -1066,6 +1181,31 @@ const App = {
     
     if (corsProxy) localStorage.setItem("cors_proxy_url", corsProxy);
     else localStorage.removeItem("cors_proxy_url");
+
+    // Firebase 연동 정보 업데이트
+    if (document.getElementById("settings-firebase-url")) {
+      const firebaseDbUrl = document.getElementById("settings-firebase-url").value.trim();
+      const firebaseApiKey = document.getElementById("settings-firebase-key").value.trim();
+      const firebaseProjectId = document.getElementById("settings-firebase-project").value.trim();
+
+      if (firebaseDbUrl) localStorage.setItem("firebase_db_url", firebaseDbUrl);
+      else localStorage.removeItem("firebase_db_url");
+
+      if (firebaseApiKey) localStorage.setItem("firebase_api_key", firebaseApiKey);
+      else localStorage.removeItem("firebase_api_key");
+
+      if (firebaseProjectId) localStorage.setItem("firebase_project_id", firebaseProjectId);
+      else localStorage.removeItem("firebase_project_id");
+
+      // Firebase 재연동
+      this.initFirebase();
+
+      // 공유 링크 복사 버튼 노출 여부
+      const linkBtn = document.getElementById("btn-copy-sync-link");
+      if (linkBtn) {
+        linkBtn.style.display = this.isCloudEnabled ? "inline-flex" : "none";
+      }
+    }
     
     let statusMsg = `AI 제공자가 [${provider === 'gemini' ? '구글 Gemini' : provider === 'openai' ? 'OpenAI ChatGPT' : '안드로픽 Claude'}](${model})로 설정되었습니다.\n`;
     statusMsg += "설정이 안전하게 보관되었습니다.";
