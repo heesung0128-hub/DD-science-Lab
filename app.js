@@ -152,6 +152,11 @@ const App = {
             activeRep.student_name = userRecord.student_name;
             activeRep.student_id = userRecord.student_id;
             
+            // 학년과 반도 학번 기반으로 강제 보정하여 동기화
+            const parsed = this.parseStudentId(userRecord.student_id);
+            activeRep.step_1.학년 = parsed.grade;
+            activeRep.step_1.학급 = parsed.class;
+            
             this.report = activeRep;
 
             // 세션 상태 데이터베이스 업데이트 반영
@@ -306,8 +311,10 @@ const App = {
     if (!this.report.student_name && nameEl) this.report.student_name = nameEl.value.trim();
     if (!this.report.student_id && idEl) this.report.student_id = idEl.value.trim();
 
-    const grade = parseInt(document.getElementById("input-grade").value);
-    const cls = parseInt(document.getElementById("input-class").value);
+    // 학번 기반 학년/반 자동 파싱 대입
+    const parsed = this.parseStudentId(this.report.student_id);
+    const grade = parsed.grade;
+    const cls = parsed.class;
     const track = document.getElementById("input-track").value;
     const major = document.getElementById("input-major").value;
     const career = document.getElementById("input-career").value;
@@ -1328,8 +1335,20 @@ const App = {
       idEl.style.cursor = "not-allowed";
     }
 
-    document.getElementById("input-grade").value = r.step_1.학년;
-    document.getElementById("input-class").value = r.step_1.학급 || 1;
+    const gradeEl = document.getElementById("input-grade");
+    const classEl = document.getElementById("input-class");
+    if (gradeEl) {
+      gradeEl.value = r.step_1.학년;
+      gradeEl.disabled = true;
+      gradeEl.style.background = "rgba(255,255,255,0.04)";
+      gradeEl.style.cursor = "not-allowed";
+    }
+    if (classEl) {
+      classEl.value = r.step_1.학급 || 1;
+      classEl.disabled = true;
+      classEl.style.background = "rgba(255,255,255,0.04)";
+      classEl.style.cursor = "not-allowed";
+    }
     document.getElementById("input-track").value = r.step_1.계열;
     document.getElementById("input-major").value = r.step_1.학과;
     document.getElementById("input-career").value = r.step_1.진로;
@@ -1635,9 +1654,26 @@ const App = {
     defaultRep.report_id = "rep_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5);
     defaultRep.student_name = name;
     defaultRep.student_id = studentId;
+
+    // 학번 파싱 자동 연동
+    const parsed = this.parseStudentId(studentId);
+    defaultRep.step_1.학년 = parsed.grade;
+    defaultRep.step_1.학급 = parsed.class;
+
     defaultRep.metadata.created_at = new Date().toISOString();
     defaultRep.metadata.updated_at = new Date().toISOString();
     return defaultRep;
+  },
+
+  parseStudentId: function (studentId) {
+    const idStr = String(studentId || "").trim();
+    if (idStr.length === 5 && !isNaN(idStr)) {
+      const grade = parseInt(idStr.substring(0, 1));
+      const cls = parseInt(idStr.substring(1, 3));
+      const num = parseInt(idStr.substring(3, 5));
+      return { grade, class: cls, number: num };
+    }
+    return { grade: 1, class: 1, number: 1 };
   },
 
   renderInquiryList: function () {
