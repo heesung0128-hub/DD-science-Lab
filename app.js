@@ -115,45 +115,56 @@ const App = {
         const usersDb = JSON.parse(usersDbRaw);
         const userRecord = usersDb[currentUser];
         if (userRecord) {
-          // 1:N 구조 마이그레이션 대응
-          if (!userRecord.reports) {
-            userRecord.reports = [];
-            if (userRecord.report) {
-              const legacyRep = userRecord.report;
-              legacyRep.report_id = legacyRep.report_id || "rep_" + Date.now();
-              legacyRep.metadata.created_at = legacyRep.metadata.created_at || new Date().toISOString();
-              legacyRep.metadata.updated_at = legacyRep.metadata.updated_at || new Date().toISOString();
-              userRecord.reports.push(legacyRep);
-              userRecord.active_report_id = legacyRep.report_id;
-              delete userRecord.report;
+          // 마이그레이션 및 예외 대응 이중 구조
+          try {
+            if (!userRecord.reports) {
+              userRecord.reports = [];
+              if (userRecord.report) {
+                const legacyRep = userRecord.report;
+                legacyRep.report_id = legacyRep.report_id || "rep_" + Date.now();
+                legacyRep.metadata = legacyRep.metadata || {};
+                legacyRep.metadata.created_at = legacyRep.metadata.created_at || new Date().toISOString();
+                legacyRep.metadata.updated_at = legacyRep.metadata.updated_at || new Date().toISOString();
+                userRecord.reports.push(legacyRep);
+                userRecord.active_report_id = legacyRep.report_id;
+                delete userRecord.report;
+              }
             }
-          }
 
-          // 비어 있는 경우 새 탐구 보장
-          if (userRecord.reports.length === 0) {
+            // 비어 있는 경우 새 탐구 보장
+            if (userRecord.reports.length === 0) {
+              const newRep = this.createNewReportStructure(userRecord.student_name, userRecord.student_id);
+              userRecord.reports.push(newRep);
+              userRecord.active_report_id = newRep.report_id;
+            }
+
+            if (!userRecord.active_report_id) {
+              userRecord.active_report_id = userRecord.reports[0].report_id;
+            }
+
+            let activeRep = userRecord.reports.find(r => r.report_id === userRecord.active_report_id);
+            if (!activeRep) {
+              activeRep = userRecord.reports[0];
+              userRecord.active_report_id = activeRep.report_id;
+            }
+
+            // 이름과 학번 강제 보장 및 동기화
+            activeRep.student_name = userRecord.student_name;
+            activeRep.student_id = userRecord.student_id;
+            
+            this.report = activeRep;
+
+            // 세션 상태 데이터베이스 업데이트 반영
+            localStorage.setItem("antigravity_users_db", JSON.stringify(usersDb));
+          } catch (innerErr) {
+            console.warn("사용자 리포트 마이그레이션 복구 중 예외가 감지되어 새 리포트를 자동 적재합니다.", innerErr);
+            userRecord.reports = [];
             const newRep = this.createNewReportStructure(userRecord.student_name, userRecord.student_id);
             userRecord.reports.push(newRep);
             userRecord.active_report_id = newRep.report_id;
+            this.report = newRep;
+            localStorage.setItem("antigravity_users_db", JSON.stringify(usersDb));
           }
-
-          if (!userRecord.active_report_id) {
-            userRecord.active_report_id = userRecord.reports[0].report_id;
-          }
-
-          let activeRep = userRecord.reports.find(r => r.report_id === userRecord.active_report_id);
-          if (!activeRep) {
-            activeRep = userRecord.reports[0];
-            userRecord.active_report_id = activeRep.report_id;
-          }
-
-          // 이름과 학번 강제 보장 및 동기화
-          activeRep.student_name = userRecord.student_name;
-          activeRep.student_id = userRecord.student_id;
-          
-          this.report = activeRep;
-
-          // 세션 상태 데이터베이스 업데이트 반영
-          localStorage.setItem("antigravity_users_db", JSON.stringify(usersDb));
 
           // 프로필 바인딩
           const profileBadge = document.getElementById("user-profile-badge");
@@ -167,7 +178,9 @@ const App = {
           this.renderInquiryList();
         }
       } catch (e) {
-        console.error("사용자 DB 파싱 오류", e);
+        console.error("사용자 DB 파싱 심각한 오류, 세션을 안전하게 종료합니다.", e);
+        localStorage.removeItem("antigravity_current_user");
+        window.location.reload();
       }
     }
 
