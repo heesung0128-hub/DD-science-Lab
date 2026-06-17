@@ -113,6 +113,52 @@ const App = {
         badge.style.color = "#2a9d8f";
       }
     }
+
+    // 과목 필터 동적 생성 호출
+    this.updateSubjectFilterOptions();
+  },
+
+  /**
+   * 로드된 학생 데이터 기반 과목 필터 목록 동적 생성
+   */
+  updateSubjectFilterOptions: function () {
+    const filterSelect = document.getElementById("filter-subject");
+    if (!filterSelect) return;
+
+    // 현재 선택값 기억
+    const currentSelected = this.filters.subject || "all";
+
+    // unique subjects 추출
+    const subjects = new Set();
+    if (this.students && Array.isArray(this.students)) {
+      this.students.forEach(st => {
+        const subName = st.info?.step_1?.교과목?.과목명;
+        if (subName) {
+          subjects.add(subName);
+        }
+      });
+    }
+
+    // 정렬
+    const sortedSubjects = Array.from(subjects).sort();
+
+    // option 렌더링
+    filterSelect.innerHTML = '<option value="all">전체 과목</option>';
+    sortedSubjects.forEach(sub => {
+      const opt = document.createElement("option");
+      opt.value = sub;
+      opt.textContent = sub;
+      if (sub === currentSelected) {
+        opt.selected = true;
+      }
+      filterSelect.appendChild(opt);
+    });
+
+    // 선택값이 현재 목록에 없으면 'all'로 리셋
+    if (currentSelected !== "all" && !subjects.has(currentSelected)) {
+      this.filters.subject = "all";
+      filterSelect.value = "all";
+    }
   },
 
   /**
