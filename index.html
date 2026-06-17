@@ -33,12 +33,12 @@
     
     <div class="header-meta-controls">
       <!-- 다중 탐구 셀렉터 추가 -->
-      <div id="inquiry-selector-container" style="display: none; align-items: center; gap: 8px; background: rgba(255,255,255,0.08); border: 1px solid var(--border-glass); padding: 6px 12px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; box-shadow: 0 4px 6px rgba(0,0,0,0.15);">
-        <span style="font-size: 0.8rem; font-weight: 700; color: #ffffff; text-shadow: 0 1px 2px rgba(0,0,0,0.6); display: flex; align-items: center; gap: 4px;">📂 탐구 과제:</span>
-        <select id="inquiry-select" onchange="App.handleInquiryChange()" style="padding: 4px 8px; font-size: 0.8rem; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 6px; color: #ffffff; cursor: pointer; max-width: 180px; width: auto; outline: none; font-weight: 600; box-shadow: inset 0 1px 2px rgba(0,0,0,0.3);">
+      <div id="inquiry-selector-container" style="display: none; align-items: center; gap: 8px; background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(0, 180, 216, 0.5); padding: 6px 12px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; box-shadow: 0 0 10px rgba(0, 180, 216, 0.2);">
+        <span style="font-size: 0.8rem; font-weight: 700; color: #00b4d8; display: flex; align-items: center; gap: 4px;">📂 탐구 과제:</span>
+        <select id="inquiry-select" onchange="App.handleInquiryChange()" style="padding: 4px 8px; font-size: 0.8rem; background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 6px; color: #ffffff; cursor: pointer; max-width: 220px; outline: none; font-weight: 600; box-shadow: inset 0 1px 2px rgba(0,0,0,0.3);">
           <!-- 동적 생성 -->
         </select>
-        <button onclick="App.createNewInquiry()" style="background: var(--accent); border: none; color: white; font-size: 0.75rem; cursor: pointer; padding: 4px 10px; font-weight: bold; border-radius: 6px; transition: var(--transition); box-shadow: 0 2px 4px rgba(0,0,0,0.2);" title="새 탐구 생성">➕ 새 탐구</button>
+        <button onclick="App.createNewInquiry()" style="background: #00b4d8; border: none; color: #ffffff; font-size: 0.75rem; cursor: pointer; padding: 4px 10px; font-weight: 800; border-radius: 6px; transition: all 0.2s ease; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.2);" onmouseover="this.style.background='#0077b6'; this.style.transform='scale(1.03)'" onmouseout="this.style.background='#00b4d8'; this.style.transform='scale(1)'" title="새 탐구 생성">➕ 새 탐구</button>
       </div>
 
       <div id="user-profile-badge" class="curriculum-tag" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-glass); display: none; align-items: center; gap: 8px;">
