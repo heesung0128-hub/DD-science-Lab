@@ -92,13 +92,38 @@ const App = {
     // 테마 설정 초기화
     document.documentElement.setAttribute("data-theme", this.theme);
 
-    // 로컬 스토리지 로드 시도
-    const saved = localStorage.getItem("antigravity_report_save");
-    if (saved) {
+    // 로그인 세션 확인
+    const currentUser = localStorage.getItem("antigravity_current_user");
+    if (!currentUser) {
+      // 로그인 창 강제 띄우기
+      document.getElementById("auth-modal-root").style.display = "flex";
+      return;
+    }
+
+    // 로그인 되어 있는 경우: 사용자 프로필 표시 및 데이터 복원
+    const usersDbRaw = localStorage.getItem("antigravity_users_db");
+    if (usersDbRaw) {
       try {
-        this.report = JSON.parse(saved);
+        const usersDb = JSON.parse(usersDbRaw);
+        const userRecord = usersDb[currentUser];
+        if (userRecord) {
+          if (userRecord.report) {
+            this.report = userRecord.report;
+          }
+          // 이름과 학번을 데이터 구조에 강제 갱신
+          this.report.student_name = userRecord.student_name;
+          this.report.student_id = userRecord.student_id;
+
+          // 프로필 바인딩
+          const profileBadge = document.getElementById("user-profile-badge");
+          const profileDisplay = document.getElementById("user-profile-display");
+          if (profileBadge && profileDisplay) {
+            profileDisplay.textContent = `${userRecord.student_id} ${userRecord.student_name}`;
+            profileBadge.style.display = "flex";
+          }
+        }
       } catch (e) {
-        console.error("저장 데이터 파싱 오류, 기본값 사용", e);
+        console.error("사용자 DB 파싱 오류", e);
       }
     }
 
@@ -115,7 +140,7 @@ const App = {
     this.updateCurriculumBadge();
     this.renderKeywords();
 
-    // 30초 주기 자동 저장 활성화
+    // 자동 저장 활성화
     this.startAutoSave();
     
     // 입력 필드 포커스 아웃 시 임시저장
@@ -1450,7 +1475,29 @@ const App = {
    * 로컬 스토리지 데이터 동기화 저장
    */
   saveToLocalStorage: function () {
+    const currentUser = localStorage.getItem("antigravity_current_user");
+    if (!currentUser) return; // 로그인 되지 않은 경우는 저장 안함
+
     this.report.metadata.updated_at = new Date().toISOString();
+    
+    // 1. 사용자 DB 업데이트
+    const usersDbRaw = localStorage.getItem("antigravity_users_db");
+    if (usersDbRaw) {
+      try {
+        const usersDb = JSON.parse(usersDbRaw);
+        if (usersDb[currentUser]) {
+          this.report.student_name = usersDb[currentUser].student_name;
+          this.report.student_id = usersDb[currentUser].student_id;
+          
+          usersDb[currentUser].report = this.report;
+          localStorage.setItem("antigravity_users_db", JSON.stringify(usersDb));
+        }
+      } catch (e) {
+        console.error("사용자 DB 업데이트 실패", e);
+      }
+    }
+    
+    // 하위 호환성 임시 저장 데이터 동기화
     localStorage.setItem("antigravity_report_save", JSON.stringify(this.report));
     
     // UI 저장 문구 깜빡임 효과
@@ -1767,9 +1814,145 @@ const App = {
         btn.disabled = false;
       }
     }
+  },
+
+  toggleAuthView: function (view) {
+    if (view === "login") {
+      document.getElementById("auth-login-view").style.display = "block";
+      document.getElementById("auth-register-view").style.display = "none";
+    } else {
+      document.getElementById("auth-login-view").style.display = "none";
+      document.getElementById("auth-register-view").style.display = "block";
+    }
+  },
+
+  loginUser: function () {
+    const id = document.getElementById("auth-login-id").value.trim();
+    const pw = document.getElementById("auth-login-pw").value.trim();
+    
+    if (!id || !pw) {
+      alert("아이디와 비밀번호를 모두 입력해 주세요.");
+      return;
+    }
+    
+    const usersDbRaw = localStorage.getItem("antigravity_users_db") || "{}";
+    let usersDb = {};
+    try {
+      usersDb = JSON.parse(usersDbRaw);
+    } catch (e) {
+      console.error(e);
+    }
+    
+    const user = usersDb[id];
+    if (!user || user.password !== pw) {
+      alert("아이디 또는 비밀번호가 일치하지 않습니다.");
+      return;
+    }
+    
+    // 로그인 세션 등록
+    localStorage.setItem("antigravity_current_user", id);
+    
+    alert(`🔑 [${user.student_name}] 학생님, 환영합니다!`);
+    document.getElementById("auth-modal-root").style.display = "none";
+    
+    // 재초기화
+    this.init();
+  },
+
+  registerUser: function () {
+    const id = document.getElementById("auth-reg-id").value.trim();
+    const pw = document.getElementById("auth-reg-pw").value.trim();
+    const name = document.getElementById("auth-reg-name").value.trim();
+    const studentId = document.getElementById("auth-reg-student-id").value.trim();
+    
+    if (!id || !pw || !name || !studentId) {
+      alert("모든 필드를 기입해 주세요.");
+      return;
+    }
+    
+    if (!/^[A-Za-z0-9_\-]+$/.test(id)) {
+      alert("아이디는 영문, 숫자, _, - 만 포함할 수 있습니다.");
+      return;
+    }
+    
+    if (studentId.length !== 5 || isNaN(studentId)) {
+      alert("학번은 5자리 숫자 형식이어야 합니다. (예: 10101)");
+      return;
+    }
+    
+    const usersDbRaw = localStorage.getItem("antigravity_users_db") || "{}";
+    let usersDb = {};
+    try {
+      usersDb = JSON.parse(usersDbRaw);
+    } catch (e) {
+      console.error(e);
+    }
+    
+    if (usersDb[id]) {
+      alert("이미 가입된 아이디가 존재합니다.");
+      return;
+    }
+    
+    // 새 사용자 생성 (기본 리포트 스키마 탑재)
+    const defaultReport = JSON.parse(JSON.stringify(this.report));
+    defaultReport.student_name = name;
+    defaultReport.student_id = studentId;
+    defaultReport.step_1.학과 = "";
+    defaultReport.step_1.진로 = "";
+    defaultReport.step_2.키워드 = [];
+    defaultReport.step_2.동기 = "";
+    defaultReport.step_2.선택_주제 = "";
+    
+    usersDb[id] = {
+      password: pw,
+      student_name: name,
+      student_id: studentId,
+      report: defaultReport
+    };
+    
+    localStorage.setItem("antigravity_users_db", JSON.stringify(usersDb));
+    localStorage.setItem("antigravity_current_user", id);
+    
+    alert(`🎉 회원가입 및 로그인이 완료되었습니다!\n이름: ${name} (학번: ${studentId})`);
+    document.getElementById("auth-modal-root").style.display = "none";
+    
+    // 재초기화
+    this.init();
+  },
+
+  logoutUser: function () {
+    if (confirm("로그아웃 하시겠습니까?\n작성 중이던 데이터는 안전하게 임시저장되었습니다.")) {
+      this.saveToLocalStorage();
+      localStorage.removeItem("antigravity_current_user");
+      window.location.reload();
+    }
+  },
+
+  exportReportJson: function () {
+    const currentUser = localStorage.getItem("antigravity_current_user");
+    if (!currentUser) return;
+    
+    const usersDbRaw = localStorage.getItem("antigravity_users_db") || "{}";
+    let usersDb = {};
+    try {
+      usersDb = JSON.parse(usersDbRaw);
+    } catch (e) {}
+    
+    const user = usersDb[currentUser];
+    if (!user || !user.report) {
+      alert("저장된 보고서 데이터를 찾을 수 없습니다.");
+      return;
+    }
+    
+    const dataStr = JSON.stringify(user.report, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    const exportFileDefaultName = `Antigravity_탐구보고서_${user.student_id}_${user.student_name}.json`;
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
   }
-
-
 
 };
 
