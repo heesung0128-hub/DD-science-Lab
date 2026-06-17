@@ -1775,6 +1775,49 @@ const App = {
     }
   },
 
+  deleteCurrentInquiry: function () {
+    const currentUser = localStorage.getItem("antigravity_current_user");
+    if (!currentUser) return;
+
+    const usersDbRaw = localStorage.getItem("antigravity_users_db");
+    if (!usersDbRaw) return;
+
+    try {
+      const usersDb = JSON.parse(usersDbRaw);
+      const userRecord = usersDb[currentUser];
+      if (userRecord && userRecord.reports) {
+        // 최소 1개 탐구 보존 방어막
+        if (userRecord.reports.length <= 1) {
+          alert("⚠️ 최소 1개 이상의 탐구 과제는 유지되어야 하므로 삭제할 수 없습니다.");
+          return;
+        }
+
+        const activeId = userRecord.active_report_id || this.report.report_id;
+        const currentSubject = this.report.step_1?.교과목?.과목명 || "과목미정";
+        const currentTopic = this.report.step_2?.선택_주제 || "주제미정";
+
+        if (confirm(`🗑️ 정말 이 탐구 과제를 삭제하시겠습니까?\n\n[대상 과목]: ${currentSubject}\n[대상 주제]: ${currentTopic}\n\n삭제된 내용은 영구히 복구할 수 없습니다.`)) {
+          // 제거
+          userRecord.reports = userRecord.reports.filter(r => r.report_id !== activeId);
+          // 첫 번째로 변경
+          userRecord.active_report_id = userRecord.reports[0].report_id;
+          
+          this.report = userRecord.reports[0];
+          
+          localStorage.setItem("antigravity_users_db", JSON.stringify(usersDb));
+          
+          // 화면 및 드롭다운 강제 리프레시
+          this.step = 1;
+          this.updateViews();
+          this.renderInquiryList();
+          alert("🗑️ 탐구 과제가 정상적으로 삭제되었습니다.");
+        }
+      }
+    } catch (e) {
+      console.error("탐구 삭제 중 오류:", e);
+    }
+  },
+
   /**
    * Gemini API 설정 모달 제어
    */

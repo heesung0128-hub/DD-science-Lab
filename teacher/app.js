@@ -13,6 +13,7 @@ const App = {
   geminiApiKey: "",
   filters: {
     subject: "all",
+    grade: "all",
     class: "all"
   },
 
@@ -227,6 +228,8 @@ const App = {
     if (view === "dashboard") {
       document.getElementById("view-dashboard").style.display = "block";
       document.getElementById("nav-dashboard").classList.add("active");
+      // 대시보드 진입 시 자동 동기화 적용으로 실시간 반영 보장
+      this.loadStudentsData();
       this.renderDashboard();
     } else if (view === "workspace") {
       document.getElementById("view-workspace").style.display = "block";
@@ -246,11 +249,12 @@ const App = {
     const listContainer = document.getElementById("class-student-grid");
     listContainer.innerHTML = "";
 
-    // 과목 및 학급 필터링 적용
+    // 과목, 학년, 학급 필터링 적용
     const filteredStudents = this.students.filter(st => {
       const subjectMatch = this.filters.subject === "all" || st.info.step_1.교과목.과목명 === this.filters.subject;
+      const gradeMatch = this.filters.grade === "all" || String(st.info.step_1.학년) === this.filters.grade;
       const classMatch = this.filters.class === "all" || String(st.info.step_1.학급) === this.filters.class;
-      return subjectMatch && classMatch;
+      return subjectMatch && gradeMatch && classMatch;
     });
 
     // 필터 요약 개수 정보 업데이트
@@ -301,9 +305,11 @@ const App = {
    */
   handleFilterChange: function () {
     const subjectFilter = document.getElementById("filter-subject").value;
+    const gradeFilter = document.getElementById("filter-grade").value;
     const classFilter = document.getElementById("filter-class").value;
     
     this.filters.subject = subjectFilter;
+    this.filters.grade = gradeFilter;
     this.filters.class = classFilter;
     
     this.renderDashboard();
