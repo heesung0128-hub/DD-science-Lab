@@ -1483,11 +1483,30 @@ const App = {
   /**
    * Gemini API 설정 모달 제어
    */
+  /**
+   * AI API 설정 모달 제어
+   */
   openSettingsModal: function () {
     const modal = document.getElementById("settings-modal-root");
-    const keyInput = document.getElementById("settings-gemini-key");
-    if (modal && keyInput) {
-      keyInput.value = localStorage.getItem("gemini_api_key") || "";
+    if (modal) {
+      // 값 채워넣기
+      const provider = localStorage.getItem("active_ai_provider") || "gemini";
+      document.getElementById("settings-ai-provider").value = provider;
+      
+      document.getElementById("settings-gemini-key").value = localStorage.getItem("gemini_api_key") || "";
+      document.getElementById("settings-openai-key").value = localStorage.getItem("openai_api_key") || "";
+      document.getElementById("settings-claude-key").value = localStorage.getItem("claude_api_key") || "";
+      document.getElementById("settings-cors-proxy").value = localStorage.getItem("cors_proxy_url") || "";
+
+      // 제공자별 화면 레이아웃 토글 및 모델 목록 갱신
+      this.onSettingsProviderChange();
+      
+      // 저장된 모델 적용
+      const savedModel = localStorage.getItem("active_ai_model");
+      if (savedModel) {
+        document.getElementById("settings-ai-model").value = savedModel;
+      }
+
       modal.style.display = "flex";
     }
   },
@@ -1499,25 +1518,89 @@ const App = {
     }
   },
 
-  saveSettingsKey: function () {
-    const keyInput = document.getElementById("settings-gemini-key");
-    if (keyInput) {
-      // 복사-붙여넣기 시 유입될 수 있는 눈에 보이지 않는 공백(\u200b 등), 대괄호, 따옴표 등을 완벽 제거하여 정제
-      const rawKey = keyInput.value.trim();
-      const sanitizedKey = rawKey.replace(/[^A-Za-z0-9_\-]/g, "");
-      
-      if (sanitizedKey) {
-        localStorage.setItem("gemini_api_key", sanitizedKey);
-        alert("Gemini API 키가 안전하게 정제되어 저장되었습니다!");
-      } else if (rawKey) {
-        alert("유효하지 않은 문자열 형식입니다. API 키를 다시 확인해 주세요.");
-        return;
-      } else {
-        localStorage.removeItem("gemini_api_key");
-        alert("API 키가 삭제되었습니다. 이제 AI 주제 제안 시 모의 체험 모드로 자동 폴백합니다.");
-      }
-      this.closeSettingsModal();
+  onSettingsProviderChange: function () {
+    const provider = document.getElementById("settings-ai-provider").value;
+    
+    // 키 입력 섹션 토글
+    document.querySelectorAll(".settings-key-section").forEach(sec => {
+      sec.style.display = "none";
+    });
+    document.getElementById("section-cors-proxy").style.display = "none";
+    
+    if (provider === "gemini") {
+      document.getElementById("section-key-gemini").style.display = "block";
+    } else if (provider === "openai") {
+      document.getElementById("section-key-openai").style.display = "block";
+    } else if (provider === "claude") {
+      document.getElementById("section-key-claude").style.display = "block";
+      document.getElementById("section-cors-proxy").style.display = "block";
     }
+    
+    // 모델 셀렉트박스 옵션 갱신
+    const modelSelect = document.getElementById("settings-ai-model");
+    modelSelect.innerHTML = "";
+    
+    const models = {
+      gemini: [
+        { value: "gemini-2.5-flash", text: "gemini-2.5-flash (기본 - 빠름/경제적)" },
+        { value: "gemini-2.5-pro", text: "gemini-2.5-pro (고성능 - 정교함/심층 탐구)" }
+      ],
+      openai: [
+        { value: "gpt-4o-mini", text: "gpt-4o-mini (기본 - 빠름/경제적)" },
+        { value: "gpt-4o", text: "gpt-4o (고성능 - 정교함/심층 탐구)" }
+      ],
+      claude: [
+        { value: "claude-3-5-haiku-20241022", text: "claude-3-5-haiku (기본 - 빠름/경제적)" },
+        { value: "claude-3-5-sonnet-20241022", text: "claude-3-5-sonnet (고성능 - 정교함/심층 탐구)" }
+      ]
+    };
+    
+    const providerModels = models[provider] || [];
+    providerModels.forEach(m => {
+      const opt = document.createElement("option");
+      opt.value = m.value;
+      opt.textContent = m.text;
+      modelSelect.appendChild(opt);
+    });
+  },
+
+  saveSettingsKey: function () {
+    const provider = document.getElementById("settings-ai-provider").value;
+    const model = document.getElementById("settings-ai-model").value;
+    
+    const geminiKey = document.getElementById("settings-gemini-key").value.trim().replace(/[^A-Za-z0-9_\-]/g, "");
+    const openaiKey = document.getElementById("settings-openai-key").value.trim().replace(/[^A-Za-z0-9_\-]/g, "");
+    const claudeKey = document.getElementById("settings-claude-key").value.trim().replace(/[^A-Za-z0-9_\-]/g, "");
+    const corsProxy = document.getElementById("settings-cors-proxy").value.trim();
+    
+    // 로컬 스토리지 업데이트
+    localStorage.setItem("active_ai_provider", provider);
+    localStorage.setItem("active_ai_model", model);
+    
+    if (geminiKey) localStorage.setItem("gemini_api_key", geminiKey);
+    else localStorage.removeItem("gemini_api_key");
+    
+    if (openaiKey) localStorage.setItem("openai_api_key", openaiKey);
+    else localStorage.removeItem("openai_api_key");
+    
+    if (claudeKey) localStorage.setItem("claude_api_key", claudeKey);
+    else localStorage.removeItem("claude_api_key");
+    
+    if (corsProxy) localStorage.setItem("cors_proxy_url", corsProxy);
+    else localStorage.removeItem("cors_proxy_url");
+    
+    // 안내 팝업
+    let statusMsg = `AI 제공자가 [${provider === 'gemini' ? '구글 Gemini' : provider === 'openai' ? 'OpenAI ChatGPT' : '안드로픽 Claude'}](${model})로 설정되었습니다.\n`;
+    
+    const currentKey = provider === "gemini" ? geminiKey : provider === "openai" ? openaiKey : claudeKey;
+    if (currentKey) {
+      statusMsg += "API 키가 성공적으로 정제되어 저장되었습니다! 실시간 AI 기능을 사용합니다.";
+    } else {
+      statusMsg += "등록된 API 키가 없습니다. AI 분석 시 모의 체험(Simulated) AI 모드로 작동합니다.";
+    }
+    
+    alert(statusMsg);
+    this.closeSettingsModal();
   },
 
   /**

@@ -736,15 +736,59 @@
     <div class="meta-modal-backdrop" onclick="App.closeSettingsModal()" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px);"></div>
     <div class="meta-modal-container" style="position: relative; z-index: 1001; background: var(--bg-surface); border: 1px solid var(--border-glass); border-radius: var(--radius-lg); padding: 24px; max-width: 480px; width: 90%; box-shadow: var(--shadow-glow); color: var(--text-primary);">
       <div class="meta-modal-title" style="font-size: 1.25rem; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border-glass); padding-bottom: 12px;">⚙️ Antigravity 시스템 설정</div>
-      <p class="meta-modal-desc" style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 20px;">
-        실시간 AI 탐구 주제 제안 기능을 사용하기 위해 구글 제미나이(Gemini) API 키를 설정합니다. 입력하신 키는 브라우저의 로컬 환경(LocalStorage)에만 안전하게 저장되며 외부 서버로 전혀 수집되지 않습니다.
+      <p class="meta-modal-desc" style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 16px;">
+        실시간 AI 탐구 설계를 사용하기 위한 설정을 관리합니다. 입력하신 API 키는 브라우저의 로컬 환경(LocalStorage)에만 안전하게 저장되며 외부로 수집되지 않습니다.
       </p>
 
-      <div class="meta-check-section" style="margin-bottom: 20px;">
+      <!-- AI Provider Selector -->
+      <div class="meta-check-section" style="margin-bottom: 16px;">
+        <label for="settings-ai-provider" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.85rem; color: var(--primary);">AI 서비스 제공자</label>
+        <select id="settings-ai-provider" onchange="App.onSettingsProviderChange()" style="width: 100%; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-panel); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; outline: none; box-sizing: border-box; transition: var(--transition);">
+          <option value="gemini">구글 Gemini</option>
+          <option value="openai">OpenAI ChatGPT</option>
+          <option value="claude">안드로픽 Claude</option>
+        </select>
+      </div>
+
+      <!-- AI Model Selector -->
+      <div class="meta-check-section" style="margin-bottom: 16px;">
+        <label for="settings-ai-model" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.85rem; color: var(--primary);">AI 모델 선택</label>
+        <select id="settings-ai-model" style="width: 100%; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-panel); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; outline: none; box-sizing: border-box; transition: var(--transition);">
+          <!-- JS에서 제공자 선택에 따라 옵션을 동적으로 추가함 -->
+        </select>
+      </div>
+
+      <!-- Gemini Key Section -->
+      <div class="meta-check-section settings-key-section" id="section-key-gemini" style="margin-bottom: 16px;">
         <label for="settings-gemini-key" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.85rem; color: var(--primary);">Gemini API 키</label>
         <input type="password" id="settings-gemini-key" placeholder="AI API 키를 입력하세요 (AIzaSy...)" style="width: 100%; padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-panel); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; outline: none; box-sizing: border-box; transition: var(--transition);">
-        <p class="field-helper-tip" style="margin-top: 8px; font-size: 0.75rem; color: var(--text-muted);">
-          * 키를 입력하지 않거나 비워둘 경우, AI 주제 제안 시 <strong>모의 체험(Simulated) AI 모드</strong>로 자동 폴백하여 고품질의 어울리는 주제들을 다양하게 제안합니다.
+      </div>
+
+      <!-- OpenAI Key Section -->
+      <div class="meta-check-section settings-key-section" id="section-key-openai" style="margin-bottom: 16px; display: none;">
+        <label for="settings-openai-key" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.85rem; color: var(--primary);">OpenAI API 키</label>
+        <input type="password" id="settings-openai-key" placeholder="sk-proj-... 형태로 입력하세요" style="width: 100%; padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-panel); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; outline: none; box-sizing: border-box; transition: var(--transition);">
+      </div>
+
+      <!-- Claude Key Section -->
+      <div class="meta-check-section settings-key-section" id="section-key-claude" style="margin-bottom: 16px; display: none;">
+        <label for="settings-claude-key" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.85rem; color: var(--primary);">Claude API 키</label>
+        <input type="password" id="settings-claude-key" placeholder="sk-ant-... 형태로 입력하세요" style="width: 100%; padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-panel); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; outline: none; box-sizing: border-box; transition: var(--transition);">
+      </div>
+
+      <!-- CORS Proxy Section -->
+      <div class="meta-check-section" id="section-cors-proxy" style="margin-bottom: 16px; display: none;">
+        <label for="settings-cors-proxy" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.85rem; color: var(--primary);">CORS 프록시 URL (선택)</label>
+        <input type="text" id="settings-cors-proxy" placeholder="예: https://cors-anywhere.herokuapp.com/" style="width: 100%; padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-panel); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; outline: none; box-sizing: border-box; transition: var(--transition);">
+        <p class="field-helper-tip" style="margin-top: 6px; font-size: 0.7rem; color: var(--text-muted); line-height: 1.4;">
+          * Claude API는 브라우저 직접 호출 시 CORS 보안 에러가 나므로 우회 프록시 URL 주소를 입력해 주어야 작동합니다.
+        </p>
+      </div>
+
+      <!-- Fallback info -->
+      <div class="meta-check-section" style="margin-bottom: 20px;">
+        <p class="field-helper-tip" style="margin-top: 8px; font-size: 0.75rem; color: var(--text-muted); line-height: 1.45;">
+          * 선택된 AI 공급자의 API 키를 비워둘 경우, AI 제안 시 <strong>모의 체험(Simulated) AI 모드</strong>로 자동 폴백하여 고품질의 어울리는 주제들을 설계합니다.
         </p>
       </div>
 

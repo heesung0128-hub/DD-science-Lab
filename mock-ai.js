@@ -26,14 +26,123 @@ const CURRICULUM_GUIDELINES = {
 
 const MockAI = {
   /**
-   * 진로 맞춤형 키워드 제안 (Gemini API 연계)
+   * 통합 LLM API 통신 래퍼 (Gemini, ChatGPT, Claude 지원)
+   */
+  callLLM: async function (prompt) {
+    const provider = localStorage.getItem("active_ai_provider") || "gemini";
+    const model = localStorage.getItem("active_ai_model") || (provider === "gemini" ? "gemini-2.5-flash" : provider === "openai" ? "gpt-4o-mini" : "claude-3-5-haiku-20241022");
+    
+    if (provider === "gemini") {
+      const apiKey = localStorage.getItem("gemini_api_key");
+      if (!apiKey) {
+        throw new Error("Gemini API 키가 등록되지 않았습니다.");
+      }
+      
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }]
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Gemini API 호출 오류: HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!textResponse) {
+        throw new Error("Gemini API에서 빈 응답이 반환되었습니다.");
+      }
+      return textResponse.replace(/```json/g, "").replace(/```/g, "").trim();
+    }
+    
+    if (provider === "openai") {
+      const apiKey = localStorage.getItem("openai_api_key");
+      if (!apiKey) {
+        throw new Error("OpenAI API 키가 등록되지 않았습니다.");
+      }
+      
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: [{ role: "user", content: prompt }]
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenAI API 호출 오류: HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      const textResponse = data.choices?.[0]?.message?.content;
+      if (!textResponse) {
+        throw new Error("OpenAI API에서 빈 응답이 반환되었습니다.");
+      }
+      return textResponse.replace(/```json/g, "").replace(/```/g, "").trim();
+    }
+    
+    if (provider === "claude") {
+      const apiKey = localStorage.getItem("claude_api_key");
+      if (!apiKey) {
+        throw new Error("Claude API 키가 등록되지 않았습니다.");
+      }
+      
+      const corsProxy = localStorage.getItem("cors_proxy_url") || "";
+      let url = "https://api.anthropic.com/v1/messages";
+      if (corsProxy) {
+        const cleanProxy = corsProxy.endsWith("/") ? corsProxy : corsProxy + "/";
+        url = cleanProxy + url;
+      }
+      
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "dangerouslyAllowBrowser": "true"
+        },
+        body: JSON.stringify({
+          model: model,
+          max_tokens: 4000,
+          messages: [{ role: "user", content: prompt }]
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Claude API 호출 오류: HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      const textResponse = data.content?.[0]?.text;
+      if (!textResponse) {
+        throw new Error("Claude API에서 빈 응답이 반환되었습니다.");
+      }
+      return textResponse.replace(/```json/g, "").replace(/```/g, "").trim();
+    }
+    
+    throw new Error("알 수 없는 AI 공급자입니다.");
+  },
+
+  /**
+   * 진로 맞춤형 키워드 제안 (Gemini/ChatGPT/Claude API 연계)
    */
   suggestKeywords: async function (context) {
     const { subject, department, career, field, fallbackKeywords } = context;
     
     // API 키 확인
-    let apiKey = localStorage.getItem("gemini_api_key");
-    if (!apiKey) {
+    const provider = localStorage.getItem("active_ai_provider") || "gemini";
+    const activeKey = localStorage.getItem(`${provider}_api_key`);
+    if (!activeKey) {
       // 오프라인 모의(Simulation) 모드일 때도 학생의 지망 학과(department) 및 진로(career) 정보를 파싱하여 
       // 그에 최적화된 맞춤 키워드 6종을 동적으로 추천하도록 지능화합니다.
       const dept = (department || "").trim();
@@ -42,31 +151,40 @@ const MockAI = {
       
       const combined = `${dept} ${car} ${subj}`;
       
+      let simulated = null;
       if (combined.match(/컴퓨터|인공지능|소프트웨어|코딩|알고리즘|IT|개발자|보안|웹|앱/)) {
-        return ["인공지능", "기계학습", "신경망모델", "경로최적화", "알고리즘", "빅데이터"];
+        simulated = ["인공지능", "기계학습", "신경망모델", "경로최적화", "알고리즘", "빅데이터"];
       }
-      if (combined.match(/의학|생명|의예|의약|약학|간호|바이오|유전자|세포|생물|신경|뇌/)) {
-        return ["효소활성", "바이오센서", "유전자분석", "세포대사", "감염병확산", "생체모사"];
+      else if (combined.match(/의학|생명|의예|의약|약학|간호|바이오|유전자|세포|생물|신경|뇌/)) {
+        simulated = ["효소활성", "바이오센서", "유전자분석", "세포대사", "감염병확산", "생체모사"];
       }
-      if (combined.match(/화학|신소재|배터리|분자|나노/)) {
-        return ["촉매반응", "고분자재료", "전기화학", "나노입자", "에너지밀도", "유기화학"];
+      else if (combined.match(/화학|신소재|배터리|분자|나노/)) {
+        simulated = ["촉매반응", "고분자재료", "전기화학", "나노입자", "에너지밀도", "유기화학"];
       }
-      if (combined.match(/기계|로봇|전자|전기|반도체|우주|항공|물리|역학/)) {
-        return ["센서계측", "MBL", "수치시뮬레이션", "신소재", "역학적에너지", "전자기유도"];
+      else if (combined.match(/기계|로봇|전자|전기|반도체|우주|항공|물리|역학/)) {
+        simulated = ["센서계측", "MBL", "수치시뮬레이션", "신소재", "역학적에너지", "전자기유도"];
       }
-      if (combined.match(/환경|기후|대기|생태|지구|기상|지질/)) {
-        return ["기후변화", "탄소배출", "대기질분석", "생태계보존", "삼투현상", "신재생에너지"];
+      else if (combined.match(/환경|기후|대기|생태|지구|기상|지질/)) {
+        simulated = ["기후변화", "탄소배출", "대기질분석", "생태계보존", "삼투현상", "신재생에너지"];
       }
-      if (combined.match(/경제|경영|금융|주식|통계|사회|소비자/)) {
-        return ["통계가설", "회귀분석", "상관관계", "네트워크분석", "소비자행동", "공공데이터"];
+      else if (combined.match(/경제|경영|금융|주식|통계|사회|소비자/)) {
+        simulated = ["통계가설", "회귀분석", "상관관계", "네트워크분석", "소비자행동", "공공데이터"];
       }
-      if (combined.match(/수학|기하|수치|행렬|대수/)) {
-        return ["삼각함수", "수열의합", "시뮬레이션", "테셀레이션", "카오스이론", "수치계산"];
+      else if (combined.match(/수학|기하|수치|행렬|대수/)) {
+        simulated = ["삼각함수", "수열의합", "시뮬레이션", "테셀레이션", "카오스이론", "수치계산"];
       }
-      if (combined.match(/예술|디자인|미술|음악|체육/)) {
-        return ["드로잉비율", "음향데시벨", "서사구조", "스토리텔링", "작화앵글", "생체역학"];
+      else if (combined.match(/예술|디자인|미술|음악|체육/)) {
+        simulated = ["드로잉비율", "음향데시벨", "서사구조", "스토리텔링", "작화앵글", "생체역학"];
       }
-      return fallbackKeywords;
+      
+      if (simulated) {
+        return simulated;
+      }
+      
+      const fb = [...fallbackKeywords];
+      fb.isFallback = true;
+      fb.errorMsg = "API 키가 등록되지 않아 로컬 오프라인 추천이 제공됩니다.";
+      return fb;
     }
 
     const prompt = `당신은 고등학교 탐구활동 설계 멘토입니다.
@@ -84,33 +202,14 @@ const MockAI = {
 다른 텍스트 없이 오직 JSON 배열만 출력해 주세요.`;
 
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }]
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      
-      if (textResponse) {
-        let cleanJson = textResponse.replace(/```json/g, "").replace(/```/g, "").trim();
-        const parsed = JSON.parse(cleanJson);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.slice(0, 6);
-        }
+      const textResponse = await this.callLLM(prompt);
+      const parsed = JSON.parse(textResponse);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.slice(0, 6);
       }
       throw new Error("Invalid response format");
     } catch (e) {
-      console.warn("Gemini suggestKeywords failed, falling back to static list.", e);
+      console.warn("AI suggestKeywords failed, falling back to static list.", e);
       const fb = [...fallbackKeywords];
       fb.isFallback = true;
       fb.errorMsg = e.message || String(e);
@@ -126,8 +225,9 @@ const MockAI = {
     const kwList = keywords || [];
     
     // API 키 확인
-    let apiKey = localStorage.getItem("gemini_api_key");
-    if (!apiKey) {
+    const provider = localStorage.getItem("active_ai_provider") || "gemini";
+    const activeKey = localStorage.getItem(`${provider}_api_key`);
+    if (!activeKey) {
       // API Key가 없으면 모의(Simulated) AI 제안 모드로 폴백하여 오류 없이 실행
       return this.generateSimulatedTopics(subject, kwList, motivation, forceDirect);
     }
@@ -231,28 +331,8 @@ ${ragContextStr}
 }`;
 
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: promptText }] }]
-        })
-      });
-
-      if (!response.ok) {
-        if (response.status === 400 || response.status === 403) {
-          localStorage.removeItem("gemini_api_key");
-          throw new Error(`잘못된 API 키이거나 요청이 거부되었습니다. (HTTP ${response.status})`);
-        }
-        throw new Error(`API 호출 오류: HTTP ${response.status}`);
-      }
-
-      const data = await response.json();
-      const textOutput = data.candidates[0].content.parts[0].text.trim();
-      
-      // JSON 파싱 (마크다운 백틱 제거 등 안정화)
-      let cleanJson = textOutput.replace(/```json/g, "").replace(/```/g, "").trim();
-      const parsed = JSON.parse(cleanJson);
+      const textOutput = await this.callLLM(promptText);
+      const parsed = JSON.parse(textOutput);
       return parsed;
 
     } catch (e) {
@@ -268,8 +348,9 @@ ${ragContextStr}
    * 6.2 AI 답변 추천 패턴 (각 텍스트 필드별 3개 추천 제공)
    */
     getSuggestions: async function (step, field, report) {
-    const apiKey = localStorage.getItem("gemini_api_key");
-    if (!apiKey) {
+    const provider = localStorage.getItem("active_ai_provider") || "gemini";
+    const activeKey = localStorage.getItem(`${provider}_api_key`);
+    if (!activeKey) {
       return this.simulateGetSuggestions(step, field, report);
     }
 
@@ -307,22 +388,8 @@ ${ragContextStr}
 ]`;
 
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: promptText }] }]
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Gemini API 통신 오류: HTTP ${response.status}`);
-      }
-
-      const data = await response.json();
-      const textOutput = data.candidates[0].content.parts[0].text.trim();
-      const cleanJson = textOutput.replace(/```json/g, "").replace(/```/g, "").trim();
-      const parsed = JSON.parse(cleanJson);
+      const textOutput = await this.callLLM(promptText);
+      const parsed = JSON.parse(textOutput);
       return parsed;
 
     } catch (e) {
@@ -499,8 +566,9 @@ ${ragContextStr}
    * 절대 규정: 별점 금지, 점수 금지, '세특' 단어 사용 절대 금지
    */
   selfCheckConnection: async function (subject, report) {
-    const apiKey = localStorage.getItem("gemini_api_key");
-    if (!apiKey) {
+    const provider = localStorage.getItem("active_ai_provider") || "gemini";
+    const activeKey = localStorage.getItem(`${provider}_api_key`);
+    if (!activeKey) {
       return this.simulateSelfCheckConnection(subject, report);
     }
 
@@ -535,22 +603,8 @@ ${ragContextStr}
 }`;
 
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: promptText }] }]
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Gemini API 통신 오류: HTTP ${response.status}`);
-      }
-
-      const data = await response.json();
-      const textOutput = data.candidates[0].content.parts[0].text.trim();
-      const cleanJson = textOutput.replace(/```json/g, "").replace(/```/g, "").trim();
-      const parsed = JSON.parse(cleanJson);
+      const textOutput = await this.callLLM(promptText);
+      const parsed = JSON.parse(textOutput);
       return parsed;
 
     } catch (e) {
@@ -855,8 +909,9 @@ ${ragContextStr}
   },
 
   suggestVariables: async function (subject, topic, inquiry_type, hypothesis, slots) {
-    const apiKey = localStorage.getItem("gemini_api_key");
-    if (!apiKey) {
+    const provider = localStorage.getItem("active_ai_provider") || "gemini";
+    const activeKey = localStorage.getItem(`${provider}_api_key`);
+    if (!activeKey) {
       return this.simulateSuggestVariables(subject, topic, inquiry_type, hypothesis, slots);
     }
 
@@ -882,22 +937,8 @@ ${ragContextStr}
 }`;
 
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: promptText }] }]
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Gemini API 통신 오류: HTTP ${response.status}`);
-      }
-
-      const data = await response.json();
-      const textOutput = data.candidates[0].content.parts[0].text.trim();
-      const cleanJson = textOutput.replace(/```json/g, "").replace(/```/g, "").trim();
-      const parsed = JSON.parse(cleanJson);
+      const textOutput = await this.callLLM(promptText);
+      const parsed = JSON.parse(textOutput);
       return parsed;
 
     } catch (e) {
