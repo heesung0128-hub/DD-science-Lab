@@ -152,10 +152,18 @@ const App = {
             activeRep.student_name = userRecord.student_name;
             activeRep.student_id = userRecord.student_id;
             
-            // 학번 파싱을 통한 학년/학급 강제 오버라이딩 (데이터 정합성 확보)
+            // 학번 파싱을 통한 학년/학급 강제 오버라이딩 (데이터 정합성 확보, 고교 학년 1-3 범위 제한)
             if (userRecord.student_id && userRecord.student_id.length === 5) {
-              activeRep.step_1.학년 = parseInt(userRecord.student_id.charAt(0), 10);
-              activeRep.step_1.학급 = parseInt(userRecord.student_id.substring(1, 3), 10);
+              let gradeNum = parseInt(userRecord.student_id.charAt(0), 10);
+              if (gradeNum < 1 || gradeNum > 3) {
+                gradeNum = 1;
+              }
+              let classNum = parseInt(userRecord.student_id.substring(1, 3), 10);
+              if (classNum < 1 || classNum > 12) {
+                classNum = 1;
+              }
+              activeRep.step_1.학년 = gradeNum;
+              activeRep.step_1.학급 = classNum;
             }
             
             this.report = activeRep;
@@ -190,8 +198,7 @@ const App = {
       }
     }
 
-    // 초기 바인딩 및 뷰 업데이트
-    this.updateSubjectDropdown();
+    // 초기 바인딩 및 뷰 업데이트 (restoreFormValues가 내부에서 updateSubjectDropdown을 호출하므로 정렬)
     this.restoreFormValues();
     this.renderExplorationTypes();
     this.renderVariableSlots();
@@ -1655,10 +1662,18 @@ const App = {
     defaultRep.student_name = name;
     defaultRep.student_id = studentId;
     
-    // 학번 파싱을 통한 학년/학급 기본 세팅
+    // 학번 파싱을 통한 학년/학급 기본 세팅 (고교 학년 1-3 범위 제한)
     if (studentId && studentId.length === 5) {
-      defaultRep.step_1.학년 = parseInt(studentId.charAt(0), 10);
-      defaultRep.step_1.학급 = parseInt(studentId.substring(1, 3), 10);
+      let gradeNum = parseInt(studentId.charAt(0), 10);
+      if (gradeNum < 1 || gradeNum > 3) {
+        gradeNum = 1;
+      }
+      let classNum = parseInt(studentId.substring(1, 3), 10);
+      if (classNum < 1 || classNum > 12) {
+        classNum = 1;
+      }
+      defaultRep.step_1.학년 = gradeNum;
+      defaultRep.step_1.학급 = classNum;
     }
     
     defaultRep.metadata.created_at = new Date().toISOString();
