@@ -145,7 +145,7 @@ const App = {
           const activeId = val.active_report_id || (val.reports && val.reports[0]?.report_id);
           const activeRep = val.reports?.find(r => r.report_id === activeId) || val.reports?.[0];
           if (activeRep) {
-            this.report = activeRep;
+            this.report = this.ensureReportSchema(activeRep);
             this.restoreFormValues();
             this.renderInquiryList();
             console.log("☁️ Firebase 클라우드 DB로부터 최신 학생 데이터를 동기화 로드했습니다.");
@@ -214,7 +214,7 @@ const App = {
               activeRep.step_1.학급 = classNum;
             }
             
-            this.report = activeRep;
+            this.report = this.ensureReportSchema(activeRep);
 
             // 세션 상태 데이터베이스 업데이트 반영
             localStorage.setItem("antigravity_users_db", JSON.stringify(usersDb));
@@ -871,8 +871,8 @@ const App = {
     /**
    * stlite 기반 Streamlit 데이터 통계 분석기 실행 (새 창)
    */
-    openStreamlitAnalyzer: function () {
-    window.open("easy-data-analyzer.html", "_blank");
+  openStreamlitAnalyzer: function () {
+    window.open("https://heesung0128-hub.github.io/DD-data-analyzer/", "_blank");
   },
 
 
@@ -1731,6 +1731,32 @@ const App = {
   },
 
   /**
+   * 오래되거나 누락된 탐구 보고서 데이터 필드를 기본 템플릿과 비교하여 채워주는 마이그레이션 함수
+   */
+  ensureReportSchema: function (rep) {
+    if (!rep) return JSON.parse(JSON.stringify(this.defaultReportTemplate));
+    const defaultTemplate = JSON.parse(JSON.stringify(this.defaultReportTemplate));
+    
+    const merge = (target, source) => {
+      for (const key in source) {
+        if (source.hasOwnProperty(key)) {
+          if (target[key] === undefined || target[key] === null) {
+            target[key] = source[key];
+          } else if (typeof source[key] === 'object' && source[key] !== null && !Array.isArray(source[key])) {
+            if (typeof target[key] !== 'object' || target[key] === null) {
+              target[key] = {};
+            }
+            merge(target[key], source[key]);
+          }
+        }
+      }
+    };
+    
+    merge(rep, defaultTemplate);
+    return rep;
+  },
+
+  /**
    * 1:N 다중 탐구 제어 헬퍼 및 핸들러
    */
   createNewReportStructure: function (name, studentId) {
@@ -1962,6 +1988,98 @@ const App = {
     }
   },
 
+  closeWebBridgeModal: function () {
+    const modal = document.getElementById("web-bridge-modal-root");
+    if (modal) {
+      modal.style.display = "none";
+    }
+    if (window.webBridgeReject) {
+      window.webBridgeReject(new Error("사용자가 모달을 닫았습니다."));
+      window.webBridgeReject = null;
+      window.webBridgeResolve = null;
+    }
+  },
+
+  copyWebBridgePrompt: function () {
+    const promptText = document.getElementById("web-bridge-prompt-textarea").value;
+    navigator.clipboard.writeText(promptText).then(() => {
+      const copyBtn = document.getElementById("btn-web-bridge-copy");
+      const originalHtml = copyBtn.innerHTML;
+      copyBtn.innerHTML = '<i class="fa-solid fa-check"></i> 복사 완료! 제미나이 웹으로 이동 중...';
+      copyBtn.style.background = 'var(--success)';
+      
+      setTimeout(() => {
+        copyBtn.innerHTML = originalHtml;
+        copyBtn.style.background = '';
+      }, 3000);
+      
+      window.open("https://gemini.google.com/", "_blank");
+    }).catch(err => {
+      console.error("클립보드 복사 실패:", err);
+      alert("프롬프트를 자동으로 복사하지 못했습니다. 상단 박스의 내용을 직접 복사(Ctrl+C)하여 사용해 주세요.");
+      window.open("https://gemini.google.com/", "_blank");
+    });
+  },
+
+  submitWebBridge: function () {
+    const responseText = document.getElementById("web-bridge-response-textarea").value.trim();
+    if (!responseText) {
+      alert("제미나이의 답변을 입력해 주세요.");
+      return;
+    }
+
+    if (window.webBridgeResolve) {
+      window.webBridgeResolve(responseText);
+      window.webBridgeResolve = null;
+      window.webBridgeReject = null;
+    }
+    
+    const modal = document.getElementById("web-bridge-modal-root");
+    if (modal) {
+      modal.style.display = "none";
+    }
+  },
+
+  askApiFallback: function () {
+    return new Promise((resolve, reject) => {
+      const modal = document.getElementById("api-fallback-modal-root");
+      if (!modal) {
+        resolve("simulated");
+        return;
+      }
+      modal.style.display = "flex";
+      window.apiFallbackResolve = (choice) => {
+        modal.style.display = "none";
+        resolve(choice);
+      };
+      window.apiFallbackReject = reject;
+    });
+  },
+
+  selectApiFallback: function (choice) {
+    if (window.apiFallbackResolve) {
+      window.apiFallbackResolve(choice);
+      window.apiFallbackResolve = null;
+      window.apiFallbackReject = null;
+    }
+    const modal = document.getElementById("api-fallback-modal-root");
+    if (modal) {
+      modal.style.display = "none";
+    }
+  },
+
+  closeApiFallbackModal: function () {
+    if (window.apiFallbackReject) {
+      window.apiFallbackReject(new Error("사용자가 모달을 닫았습니다."));
+      window.apiFallbackResolve = null;
+      window.apiFallbackReject = null;
+    }
+    const modal = document.getElementById("api-fallback-modal-root");
+    if (modal) {
+      modal.style.display = "none";
+    }
+  },
+
   onSettingsProviderChange: function () {
     const provider = document.getElementById("settings-ai-provider").value;
     
@@ -1988,6 +2106,9 @@ const App = {
       gemini: [
         { value: "gemini-2.5-flash", text: "gemini-2.5-flash (기본 - 빠름/경제적)" },
         { value: "gemini-2.5-pro", text: "gemini-2.5-pro (고성능 - 정교함/심층 탐구)" }
+      ],
+      "gemini-web-bridge": [
+        { value: "gemini-web-bridge", text: "gemini-free-web (웹 클립보드)" }
       ],
       openai: [
         { value: "gpt-4o-mini", text: "gpt-4o-mini (기본 - 빠름/경제적)" },
@@ -2053,13 +2174,23 @@ const App = {
     }
     
     // 안내 팝업
-    let statusMsg = `AI 제공자가 [${provider === 'gemini' ? '구글 Gemini' : provider === 'openai' ? 'OpenAI ChatGPT' : '안드로픽 Claude'}](${model})로 설정되었습니다.\n`;
+    let providerName = "알 수 없음";
+    if (provider === "gemini") providerName = "구글 Gemini API";
+    else if (provider === "gemini-web-bridge") providerName = "구글 Gemini 웹 (무료)";
+    else if (provider === "openai") providerName = "OpenAI ChatGPT";
+    else if (provider === "claude") providerName = "안드로픽 Claude";
+
+    let statusMsg = `AI 제공자가 [${providerName}](${model})로 설정되었습니다.\n`;
     
-    const currentKey = provider === "gemini" ? geminiKey : provider === "openai" ? openaiKey : claudeKey;
-    if (currentKey) {
-      statusMsg += "API 키가 성공적으로 정제되어 저장되었습니다! 실시간 AI 기능을 사용합니다.";
+    if (provider === "gemini-web-bridge") {
+      statusMsg += "제미나이 웹 브릿지 모드가 활성화되었습니다! 개인 교육용 제미나이 웹에서 복사/붙여넣기를 통해 실시간 AI 기능을 무료로 사용합니다.";
     } else {
-      statusMsg += "등록된 API 키가 없습니다. AI 분석 시 모의 체험(Simulated) AI 모드로 작동합니다.";
+      const currentKey = provider === "gemini" ? geminiKey : provider === "openai" ? openaiKey : claudeKey;
+      if (currentKey) {
+        statusMsg += "API 키가 성공적으로 정제되어 저장되었습니다! 실시간 AI 기능을 사용합니다.";
+      } else {
+        statusMsg += "등록된 API 키가 없습니다. AI 분석 시 모의 체험(Simulated) AI 모드로 작동합니다.";
+      }
     }
     
     alert(statusMsg);

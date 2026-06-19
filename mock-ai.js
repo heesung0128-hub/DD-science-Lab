@@ -26,11 +26,72 @@ const CURRICULUM_GUIDELINES = {
 
 const MockAI = {
   /**
+   * 제미나이 웹 브릿지 (수동 복사/붙여넣기) 모달 제어 및 대기 로직
+   */
+  callWebBridge: function (prompt) {
+    return new Promise((resolve, reject) => {
+      const modal = document.getElementById("web-bridge-modal-root");
+      const promptTextarea = document.getElementById("web-bridge-prompt-textarea");
+      const responseTextarea = document.getElementById("web-bridge-response-textarea");
+      
+      if (!modal || !promptTextarea || !responseTextarea) {
+        reject(new Error("제미나이 웹 브릿지 모달 요소를 찾을 수 없습니다."));
+        return;
+      }
+      
+      promptTextarea.value = prompt;
+      responseTextarea.value = "";
+      
+      // 복사 버튼 상태 리셋
+      const copyBtn = document.getElementById("btn-web-bridge-copy");
+      if (copyBtn) {
+        copyBtn.style.background = '';
+        copyBtn.innerHTML = '<i class="fa-solid fa-copy"></i> 복사하고 제미나이로 이동';
+      }
+      
+      // 모달 표시
+      modal.style.display = "flex";
+      
+      // 글로벌 변수에 리졸버 등록
+      window.webBridgeResolve = (text) => {
+        const extracted = MockAI.extractJsonFromText(text);
+        resolve(extracted);
+      };
+      window.webBridgeReject = reject;
+    });
+  },
+
+  /**
+   * 텍스트에서 ```json ... ``` 블록 혹은 { ... } 형태의 JSON만 추출
+   */
+  extractJsonFromText: function (text) {
+    if (!text) return "";
+    
+    // 1. ```json ... ``` 또는 ``` ... ``` 마크다운 블록 매칭
+    const markdownMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (markdownMatch && markdownMatch[1]) {
+      return markdownMatch[1].trim();
+    }
+    
+    // 2. { ... } 또는 [ ... ] 가장 바깥쪽 매칭
+    const jsonMatch = text.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+    if (jsonMatch && jsonMatch[1]) {
+      return jsonMatch[1].trim();
+    }
+    
+    return text.trim();
+  },
+
+  /**
    * 통합 LLM API 통신 래퍼 (Gemini, ChatGPT, Claude 지원)
    */
   callLLM: async function (prompt) {
     const provider = localStorage.getItem("active_ai_provider") || "gemini";
     const model = localStorage.getItem("active_ai_model") || (provider === "gemini" ? "gemini-2.5-flash" : provider === "openai" ? "gpt-4o-mini" : "claude-3-5-haiku-20241022");
+    
+    if (provider === "gemini-web-bridge") {
+      return await this.callWebBridge(prompt);
+    }
     
     if (provider === "gemini") {
       const apiKey = localStorage.getItem("gemini_api_key");
@@ -142,7 +203,16 @@ const MockAI = {
     // API 키 확인
     const provider = localStorage.getItem("active_ai_provider") || "gemini";
     const activeKey = localStorage.getItem(`${provider}_api_key`);
-    if (!activeKey) {
+    if (!activeKey && provider !== "gemini-web-bridge") {
+      try {
+        const choice = await App.askApiFallback();
+        if (choice === "bridge") {
+          localStorage.setItem("active_ai_provider", "gemini-web-bridge");
+          return await this.suggestKeywords(context);
+        }
+      } catch (err) {
+        console.log("사용자가 모드를 취소했습니다. 모의 AI 모드로 진행합니다.");
+      }
       // 오프라인 모의(Simulation) 모드일 때도 학생의 지망 학과(department) 및 진로(career) 정보를 파싱하여 
       // 그에 최적화된 맞춤 키워드 6종을 동적으로 추천하도록 지능화합니다.
       const dept = (department || "").trim();
@@ -227,7 +297,16 @@ const MockAI = {
     // API 키 확인
     const provider = localStorage.getItem("active_ai_provider") || "gemini";
     const activeKey = localStorage.getItem(`${provider}_api_key`);
-    if (!activeKey) {
+    if (!activeKey && provider !== "gemini-web-bridge") {
+      try {
+        const choice = await App.askApiFallback();
+        if (choice === "bridge") {
+          localStorage.setItem("active_ai_provider", "gemini-web-bridge");
+          return await this.suggestTopics(context);
+        }
+      } catch (err) {
+        console.log("사용자가 모드를 취소했습니다. 모의 AI 모드로 진행합니다.");
+      }
       // API Key가 없으면 모의(Simulated) AI 제안 모드로 폴백하여 오류 없이 실행
       return this.generateSimulatedTopics(subject, kwList, motivation, forceDirect);
     }
@@ -350,7 +429,7 @@ ${ragContextStr}
     getSuggestions: async function (step, field, report) {
     const provider = localStorage.getItem("active_ai_provider") || "gemini";
     const activeKey = localStorage.getItem(`${provider}_api_key`);
-    if (!activeKey) {
+    if (!activeKey || provider === "gemini-web-bridge") {
       return this.simulateGetSuggestions(step, field, report);
     }
 
@@ -568,7 +647,16 @@ ${ragContextStr}
   selfCheckConnection: async function (subject, report) {
     const provider = localStorage.getItem("active_ai_provider") || "gemini";
     const activeKey = localStorage.getItem(`${provider}_api_key`);
-    if (!activeKey) {
+    if (!activeKey && provider !== "gemini-web-bridge") {
+      try {
+        const choice = await App.askApiFallback();
+        if (choice === "bridge") {
+          localStorage.setItem("active_ai_provider", "gemini-web-bridge");
+          return await this.selfCheckConnection(subject, report);
+        }
+      } catch (err) {
+        console.log("사용자가 모드를 취소했습니다. 모의 AI 모드로 진행합니다.");
+      }
       return this.simulateSelfCheckConnection(subject, report);
     }
 
@@ -911,7 +999,16 @@ ${ragContextStr}
   suggestVariables: async function (subject, topic, inquiry_type, hypothesis, slots) {
     const provider = localStorage.getItem("active_ai_provider") || "gemini";
     const activeKey = localStorage.getItem(`${provider}_api_key`);
-    if (!activeKey) {
+    if (!activeKey && provider !== "gemini-web-bridge") {
+      try {
+        const choice = await App.askApiFallback();
+        if (choice === "bridge") {
+          localStorage.setItem("active_ai_provider", "gemini-web-bridge");
+          return await this.suggestVariables(subject, topic, inquiry_type, hypothesis, slots);
+        }
+      } catch (err) {
+        console.log("사용자가 모드를 취소했습니다. 모의 AI 모드로 진행합니다.");
+      }
       return this.simulateSuggestVariables(subject, topic, inquiry_type, hypothesis, slots);
     }
 
