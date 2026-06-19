@@ -2251,6 +2251,17 @@ const App = {
       return;
     }
     
+    const proceedLogin = (user, db) => {
+      // 로그인 세션 등록
+      localStorage.setItem("antigravity_current_user", id);
+      
+      alert(`🔑 [${user.student_name}] 학생님, 환영합니다!`);
+      document.getElementById("auth-modal-root").style.display = "none";
+      
+      // 재초기화
+      this.init();
+    };
+
     const usersDbRaw = localStorage.getItem("antigravity_users_db") || "{}";
     let usersDb = {};
     try {
@@ -2259,20 +2270,46 @@ const App = {
       console.error(e);
     }
     
-    const user = usersDb[id];
-    if (!user || user.password !== pw) {
-      alert("아이디 또는 비밀번호가 일치하지 않습니다.");
-      return;
+    const localUser = usersDb[id];
+    
+    // 만약 로컬에 해당 회원 데이터가 없는데 Firebase 연동이 활성화되어 있다면 원격 동기화 검사 진행
+    if (!localUser && this.isCloudEnabled && this.db) {
+      const loginBtn = document.querySelector("#auth-login-view button");
+      const originalText = loginBtn ? loginBtn.innerHTML : "로그인";
+      if (loginBtn) {
+        loginBtn.innerHTML = "⚡ 클라우드 계정 확인 중...";
+        loginBtn.disabled = true;
+      }
+
+      this.db.ref("users/" + id).once("value").then(snapshot => {
+        if (loginBtn) {
+          loginBtn.innerHTML = originalText;
+          loginBtn.disabled = false;
+        }
+        const remoteUser = snapshot.val();
+        if (remoteUser && remoteUser.password === pw) {
+          // 로컬 캐시에 저장 후 로그인 진행
+          usersDb[id] = remoteUser;
+          localStorage.setItem("antigravity_users_db", JSON.stringify(usersDb));
+          proceedLogin(remoteUser, usersDb);
+        } else {
+          alert("아이디 또는 비밀번호가 일치하지 않습니다.");
+        }
+      }).catch(err => {
+        if (loginBtn) {
+          loginBtn.innerHTML = originalText;
+          loginBtn.disabled = false;
+        }
+        console.error("Firebase 로그인 조회 실패:", err);
+        alert("네트워크 연결을 확인해 주세요.");
+      });
+    } else {
+      if (!localUser || localUser.password !== pw) {
+        alert("아이디 또는 비밀번호가 일치하지 않습니다.");
+        return;
+      }
+      proceedLogin(localUser, usersDb);
     }
-    
-    // 로그인 세션 등록
-    localStorage.setItem("antigravity_current_user", id);
-    
-    alert(`🔑 [${user.student_name}] 학생님, 환영합니다!`);
-    document.getElementById("auth-modal-root").style.display = "none";
-    
-    // 재초기화
-    this.init();
   },
 
   registerUser: function () {
@@ -2295,50 +2332,83 @@ const App = {
       alert("학번은 5자리 숫자 형식이어야 합니다. (예: 10101)");
       return;
     }
-    
-    const usersDbRaw = localStorage.getItem("antigravity_users_db") || "{}";
-    let usersDb = {};
-    try {
-      usersDb = JSON.parse(usersDbRaw);
-    } catch (e) {
-      console.error(e);
-    }
-    
-    if (usersDb[id]) {
-      alert("이미 가입된 아이디가 존재합니다.");
-      return;
-    }
-    
-    // 새 사용자 생성 (1:N 다중 탐구 스펙으로 가입 시 1개 자동 편입)
-    const defaultRep = this.createNewReportStructure(name, studentId);
-    defaultRep.step_1.학과 = "";
-    defaultRep.step_1.진로 = "";
-    defaultRep.step_2.키워드 = [];
-    defaultRep.step_2.동기 = "";
-    defaultRep.step_2.선택_주제 = "";
-    
-    usersDb[id] = {
-      password: pw,
-      student_name: name,
-      student_id: studentId,
-      reports: [defaultRep],
-      active_report_id: defaultRep.report_id
-    };
-    
-    localStorage.setItem("antigravity_users_db", JSON.stringify(usersDb));
-    localStorage.setItem("antigravity_current_user", id);
 
-    // Firebase 실시간 클라우드 동기화 (회원가입 시 업로드)
+    const executeRegistration = () => {
+      const usersDbRaw = localStorage.getItem("antigravity_users_db") || "{}";
+      let usersDb = {};
+      try {
+        usersDb = JSON.parse(usersDbRaw);
+      } catch (e) {
+        console.error(e);
+      }
+      
+      if (usersDb[id]) {
+        alert("이미 가입된 아이디가 존재합니다.");
+        return;
+      }
+      
+      // 새 사용자 생성 (1:N 다중 탐구 스펙으로 가입 시 1개 자동 편입)
+      const defaultRep = this.createNewReportStructure(name, studentId);
+      defaultRep.step_1.학과 = "";
+      defaultRep.step_1.진로 = "";
+      defaultRep.step_2.키워드 = [];
+      defaultRep.step_2.동기 = "";
+      defaultRep.step_2.선택_주제 = "";
+      
+      usersDb[id] = {
+        password: pw,
+        student_name: name,
+        student_id: studentId,
+        reports: [defaultRep],
+        active_report_id: defaultRep.report_id
+      };
+      
+      localStorage.setItem("antigravity_users_db", JSON.stringify(usersDb));
+      localStorage.setItem("antigravity_current_user", id);
+  
+      // Firebase 실시간 클라우드 동기화 (회원가입 시 업로드)
+      if (this.isCloudEnabled && this.db) {
+        this.db.ref("users/" + id).set(usersDb[id])
+          .catch(err => console.warn("Firebase 회원가입 동기화 실패:", err));
+      }
+      
+      alert(`🎉 회원가입 및 로그인이 완료되었습니다!\n이름: ${name} (학번: ${studentId})`);
+      document.getElementById("auth-modal-root").style.display = "none";
+      
+      // 재초기화
+      this.init();
+    };
+
+    // Firebase 원격 중복 아이디 검사
     if (this.isCloudEnabled && this.db) {
-      this.db.ref("users/" + id).set(usersDb[id])
-        .catch(err => console.warn("Firebase 회원가입 동기화 실패:", err));
+      const regBtn = document.querySelector("#auth-register-view button");
+      const originalText = regBtn ? regBtn.innerHTML : "회원가입 완료";
+      if (regBtn) {
+        regBtn.innerHTML = "⚡ 아이디 중복 확인 중...";
+        regBtn.disabled = true;
+      }
+
+      this.db.ref("users/" + id).once("value").then(snapshot => {
+        if (regBtn) {
+          regBtn.innerHTML = originalText;
+          regBtn.disabled = false;
+        }
+        if (snapshot.exists()) {
+          alert("이미 가입된 아이디가 존재합니다. 다른 아이디를 입력해 주세요.");
+        } else {
+          executeRegistration();
+        }
+      }).catch(err => {
+        if (regBtn) {
+          regBtn.innerHTML = originalText;
+          regBtn.disabled = false;
+        }
+        console.error("Firebase 아이디 중복 체크 실패 (오프라인 모드 가입 진행):", err);
+        executeRegistration(); // 네트워크 오류 시 일단 로컬 단독 모드로 가입 진행
+      });
+    } else {
+      executeRegistration();
     }
-    
-    alert(`🎉 회원가입 및 로그인이 완료되었습니다!\n이름: ${name} (학번: ${studentId})`);
-    document.getElementById("auth-modal-root").style.display = "none";
-    
-    // 재초기화
-    this.init();
   },
 
   logoutUser: function () {
