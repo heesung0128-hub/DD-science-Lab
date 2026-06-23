@@ -122,19 +122,44 @@ const App = {
     });
 
     this.students = studentReports.map((rep) => {
+      const courseName = rep.step_1?.교과목?.과목명 || "과목미상";
+      const cacheKey = `${rep.student_id}_${courseName}`;
+      const cacheRaw = localStorage.getItem("teacher_reviews_cache");
+      let cache = {};
+      if (cacheRaw) {
+        try {
+          cache = JSON.parse(cacheRaw);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      const savedState = cache[cacheKey] || {};
+
       const studentState = {
         info: rep,
-        status: "미검토",
+        status: savedState.status || "미검토",
         mappings: [],
         setukVariants: null,
-        finalSetuk: "",
-        safetyResult: { passed: true, issues: [] },
+        finalSetuk: savedState.finalSetuk || "",
+        safetyResult: savedState.safetyResult || { passed: true, issues: [] },
         isAutoApproved: true,
         rejectionCount: 0,
         modificationCount: 0
       };
 
       this.runPipelineForStudent(studentState);
+
+      // Restore active mapping and custom final setuk if cached
+      if (savedState.activeMappingId) {
+        studentState.mappings.forEach(m => {
+          m.active = (m.content_element_id === savedState.activeMappingId);
+        });
+      }
+      if (savedState.finalSetuk) {
+        studentState.finalSetuk = savedState.finalSetuk;
+        studentState.safetyResult = ComplianceEngine.safetyCheck(studentState.finalSetuk);
+      }
+
       return studentState;
     });
 
@@ -154,6 +179,28 @@ const App = {
 
     // 과목 필터 동적 생성 호출
     this.updateSubjectFilterOptions();
+  },
+
+  saveStudentStateToCache: function (student) {
+    const courseName = student.info.step_1?.교과목?.과목명 || "과목미상";
+    const cacheKey = `${student.info.student_id}_${courseName}`;
+    const cacheRaw = localStorage.getItem("teacher_reviews_cache") || "{}";
+    let cache = {};
+    try {
+      cache = JSON.parse(cacheRaw);
+    } catch (e) {
+      console.error(e);
+    }
+    
+    const activeMap = student.mappings.find(m => m.active);
+    cache[cacheKey] = {
+      status: student.status,
+      finalSetuk: student.finalSetuk,
+      activeMappingId: activeMap ? activeMap.content_element_id : null,
+      safetyResult: student.safetyResult
+    };
+    
+    localStorage.setItem("teacher_reviews_cache", JSON.stringify(cache));
   },
 
   /**
@@ -414,6 +461,13 @@ const App = {
     document.getElementById("workspace-student-name").textContent = student.info.student_name;
     document.getElementById("workspace-student-meta").textContent = `${student.info.student_id} | ${student.info.step_1.학년}학년 ${student.info.step_1.학급 || 1}반 | ${student.info.step_1.교과목.과목명}`;
     document.getElementById("workspace-progress").textContent = `${this.activeStudentIndex + 1} / ${this.students.length}명`;
+    
+    // 상태 배지 업데이트
+    const statusBadge = document.getElementById("workspace-student-status");
+    if (statusBadge) {
+      statusBadge.textContent = student.status;
+      statusBadge.className = `status-badge ${student.status === "완료" ? "badge-success" : student.status === "검토중" ? "badge-warning" : "badge-none"}`;
+    }
 
     // 1. 좌측 학생 8단계 보고서 렌더링
     this.renderLeftReportViewer(student);
@@ -610,20 +664,25 @@ const App = {
           student.finalSetuk = currentVariant.text;
           student.safetyResult = ComplianceEngine.safetyCheck(student.finalSetuk);
         }
+        App.saveStudentStateToCache(student);
         App.renderWorkspace();
       };
       tabWrapper.appendChild(btn);
     });
     editorArea.appendChild(tabWrapper);
 
+    // 나이스 바이트수 및 초과 계산
+    const bytes = this.getByteLength(student.finalSetuk);
+    const byteWarning = bytes > 1500 ? `<span class="byte-warning-span" style="color:var(--danger); font-weight:bold; margin-left:10px;">⚠️ 나이스 용량 초과 (${bytes - 1500} Byte 초과)</span>` : "";
+
     // 에디터 텍스트 본문 영역 생성
     const editorContainer = document.createElement("div");
     editorContainer.className = "setuk-textarea-container";
     editorContainer.innerHTML = `
       <textarea id="setuk-main-textarea" class="setuk-editor-textarea" oninput="App.handleSetukTextareaInput(this.value)">${student.finalSetuk}</textarea>
-      <div style="display:flex; justify-content:space-between; margin-top:8px; font-size:0.8rem; color:var(--text-muted);">
+      <div style="display:flex; justify-content:space-between; margin-top:8px; font-size:0.8rem; color:var(--text-muted); flex-wrap:wrap; gap:6px;">
         <span>글자 수: <strong id="setuk-char-count" style="color:var(--text-primary);">${student.finalSetuk.length}</strong>자</span>
-        <span>학생부 바이트 제한: 500자 (한글 약 1500Byte)</span>
+        <span>바이트 수: <strong id="setuk-byte-count" style="color:${bytes > 1500 ? "var(--danger)" : "var(--text-primary)"};">${bytes}</strong> / 1500 Bytes ${byteWarning}</span>
       </div>
     `;
     editorArea.appendChild(editorContainer);
@@ -647,8 +706,13 @@ const App = {
         else if (iss.type === "과도한_예측") title = "🔮 주관적 잠재력 과대평가";
         else if (iss.type === "가족_사적정보") title = "👨‍👩‍👦 사적 인적사항 유출";
         else if (iss.type === "추상적_미사여구") title = "✨ 실체 없는 추상 극찬";
+        else if (iss.type === "기재_유의어_대체필요") {
+          title = "⚠️ 기재 유의어 사용 (금지)";
+          color = "var(--warning-light)";
+        }
 
-        return `<li style="margin-bottom:6px;"><strong>${title}</strong>: "<span style="color:${color}; font-weight:bold;">${iss.term}</span>" 표현 제거 필요</li>`;
+        let suffix = iss.suggestion ? ` (대체 권장: "<span style="color:var(--primary); font-weight:bold;">${iss.suggestion}</span>")` : " 표현 제거 필요";
+        return `<li style="margin-bottom:6px;"><strong>${title}</strong>: "<span style="color:${color}; font-weight:bold;">${iss.term}</span>"${suffix}</li>`;
       }).join("");
 
       complianceBox.innerHTML = `
@@ -661,6 +725,37 @@ const App = {
       `;
     }
     editorArea.appendChild(complianceBox);
+
+    // 생기부 기재 보조 어휘 추천 패널 렌더링
+    const vocabBox = document.createElement("div");
+    vocabBox.className = "setuk-vocab-helper-box";
+    vocabBox.innerHTML = `
+      <div style="font-weight:600; margin-bottom:12px; font-size:0.85rem; color:var(--primary); display:flex; align-items:center; gap:6px;">
+        📚 생기부 작성 보조 어휘집 (클릭 시 자동 기입)
+      </div>
+      
+      <div style="margin-bottom:12px;">
+        <div class="vocab-category-title">🎯 대학 인재상 키워드</div>
+        <div class="vocab-words-wrapper">
+          ${["고민의 깊이", "공감적 사고력", "공동체의식", "문제해결능력", "지적호기심", "자기주도역량", "자기관리능력", "융합적 문제해결력", "의사소통능력", "발전가능성", "배려심", "도전정신", "독창성", "리더십", "책임감", "협동능력", "팀워크"].map(w => `<button class="vocab-word-capsule" onclick="App.insertWordAtCursor('${w} ')">${w}</button>`).join("")}
+        </div>
+      </div>
+      
+      <div style="margin-bottom:12px;">
+        <div class="vocab-category-title">⚙️ 권장 행동 동사</div>
+        <div class="vocab-words-wrapper">
+          ${["가려내다", "기술하다", "설명하다", "분석하다", "도출하다", "고안하다", "설계하다", "입증하다", "일반화하다", "추론하다", "평가하다", "조직하다", "해석하다"].map(w => `<button class="vocab-word-capsule" onclick="App.insertWordAtCursor('${w} ')">${w}</button>`).join("")}
+        </div>
+      </div>
+      
+      <div>
+        <div class="vocab-category-title">✨ 권장 형용사 및 부사</div>
+        <div class="vocab-words-wrapper">
+          ${["탁월하게", "뛰어나게", "뚜렷하게", "돋보이게", "효과적으로", "적절히", "완벽하다", "훌륭하다", "매우", "상당히", "굉장히", "남다르다"].map(w => `<button class="vocab-word-capsule" onclick="App.insertWordAtCursor('${w} ')">${w}</button>`).join("")}
+        </div>
+      </div>
+    `;
+    editorArea.appendChild(vocabBox);
   },
 
   /**
@@ -676,8 +771,29 @@ const App = {
     // 안전 규정 재평가
     student.safetyResult = ComplianceEngine.safetyCheck(val);
 
-    // UI 동적 카운트 갱신
+    // UI 동적 글자수 및 바이트 수 갱신
     document.getElementById("setuk-char-count").textContent = val.length;
+    const bytes = this.getByteLength(val);
+    const byteCountEl = document.getElementById("setuk-byte-count");
+    if (byteCountEl) {
+      byteCountEl.textContent = bytes;
+      byteCountEl.style.color = bytes > 1500 ? "var(--danger)" : "var(--text-primary)";
+      
+      const parent = byteCountEl.parentElement;
+      const existingWarning = parent.querySelector(".byte-warning-span");
+      if (existingWarning) {
+        existingWarning.remove();
+      }
+      if (bytes > 1500) {
+        const warningSpan = document.createElement("span");
+        warningSpan.className = "byte-warning-span";
+        warningSpan.style.color = "var(--danger)";
+        warningSpan.style.fontWeight = "bold";
+        warningSpan.style.marginLeft = "10px";
+        warningSpan.innerHTML = `⚠️ 나이스 용량 초과 (${bytes - 1500} Byte 초과)`;
+        parent.appendChild(warningSpan);
+      }
+    }
 
     // 규정 배너 영역만 실시간 리렌더링하여 성능 저하 최소화
     const statusBox = document.querySelector(".setuk-compliance-status-box");
@@ -686,12 +802,25 @@ const App = {
         statusBox.innerHTML = `<div style="color:var(--success-light); font-weight:600;">✓ 학생부 기재 윤리적 지침 및 안전성 규정을 모두 통과하였습니다.</div>`;
       } else {
         let issuesHtml = student.safetyResult.issues.map(iss => {
-          let title = iss.type.replace(/_/g, " ");
-          return `<li><strong>${title}</strong>: "<span style="color:var(--danger); font-weight:bold;">${iss.term}</span>" 수정 필요</li>`;
+          let title = "";
+          let color = "var(--danger)";
+          if (iss.type === "성적_순위") title = "🏆 성적/석차 관련 금지어";
+          else if (iss.type === "사교육_외부활동") title = "🏢 사교육/교외 활동 단어";
+          else if (iss.type === "과도한_예측") title = "🔮 주관적 잠재력 과대평가";
+          else if (iss.type === "가족_사적정보") title = "👨‍👩‍👦 사적 인적사항 유출";
+          else if (iss.type === "추상적_미사여구") title = "✨ 실체 없는 추상 극찬";
+          else if (iss.type === "기재_유의어_대체필요") {
+            title = "⚠️ 기재 유의어 사용 (금지)";
+            color = "var(--warning-light)";
+          }
+
+          let suffix = iss.suggestion ? ` (대체 권장: "<span style="color:var(--primary); font-weight:bold;">${iss.suggestion}</span>")` : " 표현 제거 필요";
+          return `<li style="margin-bottom:6px;"><strong>${title}</strong>: "<span style="color:${color}; font-weight:bold;">${iss.term}</span>"${suffix}</li>`;
         }).join("");
         statusBox.innerHTML = `<div style="color:var(--danger); font-weight:600; margin-bottom:8px;">⚠️ 학생부 기재 규정 위반 감지</div><ul style='margin:0; padding-left:16px; font-size:0.8rem; color:var(--text-secondary);'>${issuesHtml}</ul>`;
       }
     }
+    this.saveStudentStateToCache(student);
   },
 
   /**
@@ -715,6 +844,7 @@ const App = {
       this.renderCenterMappingList(student);
       this.renderLeftReportViewer(student); // 인용구 하이라이트 동기화
       this.regenerateSetukUsingActiveMappings(student);
+      this.saveStudentStateToCache(student);
     }
   },
 
@@ -744,6 +874,7 @@ const App = {
 
       this.renderCenterMappingList(student);
       this.regenerateSetukUsingActiveMappings(student);
+      this.saveStudentStateToCache(student);
     }
   },
 
@@ -778,6 +909,7 @@ const App = {
     }
 
     this.renderRightSetukEditor(student);
+    this.saveStudentStateToCache(student);
   },
 
   /**
@@ -946,9 +1078,16 @@ const App = {
     const student = this.students[this.activeStudentIndex];
     if (student) {
       student.status = "완료";
+      this.saveStudentStateToCache(student);
       this.logTeacherAction("confirm", { student_id: student.info.student_id });
       alert(`${student.info.student_name} 학생의 매핑·세특 검토가 확정되었습니다!`);
-      this.changeStudent(1);
+      
+      // 마지막 학생이면 대시보드로 이동, 아니면 다음 학생으로 전환
+      if (this.activeStudentIndex === this.students.length - 1) {
+        this.navigate("dashboard");
+      } else {
+        this.changeStudent(1);
+      }
     }
   },
 
@@ -1149,7 +1288,7 @@ const App = {
       }
       
       const fullLink = `${studentBaseUrl}?sync=${encoded}`;
-      const typeLabel = type === 'basic' ? "기본형" : "심화형";
+      const typeLabel = type === 'basic' ? "기초형" : "심화형";
       
       navigator.clipboard.writeText(fullLink).then(() => {
         alert(`🔗 학생용 동기화 공유 링크(${typeLabel})가 클립보드에 복사되었습니다!\n\n학생들에게 이 링크를 전달하여 열게 하면, 추가 설정 없이 실시간 클라우드 공유가 자동 작동합니다.`);

@@ -37,6 +37,59 @@ const ComplianceEngine = {
     /(우수|탁월|뛰어난|훌륭한)\s*인재\s*(임|입니다)/
   ],
 
+  GUIDELINE_REPLACEMENTS: [
+    { regex: /Google\(구글\)|구글|Google/gi, alt: "포털사이트" },
+    { regex: /NAVER\(네이버\)|네이버|NAVER/gi, alt: "포털사이트" },
+    { regex: /Daum\(다음\)|다음|Daum/gi, alt: "포털사이트" },
+    { regex: /Google Classroom\(구글 클래스룸\)|구글\s*클래스룸|Google\s*Classroom/gi, alt: "학습 플랫폼" },
+    { regex: /EBS 온라인클래스|EBS\s*온라인\s*클래스/gi, alt: "학습 플랫폼" },
+    { regex: /TikTok\(틱톡\)|틱톡|TikTok/gi, alt: "엔터테인먼트 플랫폼" },
+    { regex: /Gather Town\(개더타운\)|개더타운|Gather\s*Town/gi, alt: "메타버스 플랫폼" },
+    { regex: /ZEPETO\(제페토\)|제페토|ZEPETO/gi, alt: "메타버스 플랫폼" },
+    { regex: /miricanvas\(미리캔버스\)|미리캔버스|miricanvas/gi, alt: "디자인 제작 플랫폼" },
+    { regex: /mangoboard\(망고보드\)|망고보드|mangoboard/gi, alt: "디자인 제작 플랫폼" },
+    { regex: /Canva\(캔바\)|캔바|Canva/gi, alt: "디자인 제작 플랫폼" },
+    { regex: /YouTube\(유튜브\)|유튜브|YouTube/gi, alt: "동영상 플랫폼 (또는 동영상 공유 서비스)" },
+    { regex: /Vllo\(블로\)|블로|Vllo/gi, alt: "영상 제작 프로그램 (또는 영상 편집 프로그램)" },
+    { regex: /Premiere Pro\(프리미어 프로\)|프리미어\s*프로|Premiere\s*Pro/gi, alt: "영상 제작 프로그램 (또는 영상 편집 프로그램)" },
+    { regex: /Final Cut Pro\(파이널 컷 프로\)|파이널\s*컷\s*프로|Final\s*Cut\s*Pro/gi, alt: "영상 제작 프로그램 (또는 영상 편집 프로그램)" },
+    { regex: /classting\(클래스팅\)|클래스팅|classting/gi, alt: "학습 플랫폼 (또는 클래스관리 도구)" },
+    { regex: /YouTuber\(유튜버\)|유튜버|YouTuber/gi, alt: "동영상 크리에이터 (또는 동영상 제공자, 개인 미디어 제작자)" },
+    { regex: /KakaoTalk\(카카오톡, 카톡\)|카카오톡|카톡|KakaoTalk|Kakao/gi, alt: "메신저 (또는 메신저 서비스)" },
+    { regex: /Instagram\(인스타그램\)|인스타그램|인스타|Instagram/gi, alt: "소셜네트워크서비스" },
+    { regex: /Facebook\(페이스북\)|페이스북|페북|Facebook/gi, alt: "소셜네트워크서비스" },
+    { regex: /Twitter\(트위터\)|트위터|Twitter/gi, alt: "소셜네트워크서비스" },
+    { regex: /LINE\(라인\)|라인|LINE/gi, alt: "소셜네트워크서비스" },
+    { regex: /Meta\(메타\)|Meta/gi, alt: "소셜네트워크서비스" },
+    { regex: /ifland\(이프랜드\)|이프랜드|ifland/gi, alt: "메타버스 소셜커뮤니케이션서비스" },
+    { regex: /Padlet\(패들렛\)|패들렛|Padlet/gi, alt: "온라인 협업 툴 (또는 협업 플랫폼)" },
+    { regex: /ThinkerBell\(띵커벨\)|띵커벨|ThinkerBell/gi, alt: "온라인 협업 툴 (또는 협업 플랫폼)" },
+    { regex: /Allo\(알로\)|알로|Allo/gi, alt: "온라인 협업 툴 (또는 협업 플랫폼)" },
+    { regex: /Google Docs\(구글문서\)|구글문서|구글\s*문서|Google\s*Docs/gi, alt: "온라인 문서 편집기" },
+    { regex: /careernet\(커리어넷\)|커리어넷|careernet/gi, alt: "진로정보망 (또는 진로 정보 사이트)" },
+    { regex: /majormap\(메이저맵\)|메이저맵|majormap/gi, alt: "진로정보망 (또는 진로 정보 사이트)" },
+    { regex: /Holland\(홀랜드\)\s*검사|홀랜드\s*검사|Holland\s*검사/gi, alt: "직업선호도 검사" },
+    { regex: /KTX\(케이티엑스\)|케이티엑스|KTX/gi, alt: "초고속 열차" },
+    { regex: /SRT\(에스알티\)|에스알티|SRT/gi, alt: "초고속 열차" },
+    { regex: /UN\(유엔\)|유엔|UN/gi, alt: "국제기구" },
+    { regex: /WHO\(세계 보건 기구\)|세계\s*보건\s*기구|WHO/gi, alt: "국제기구" },
+    { regex: /WTO\(세계무역기구\)|세계무역기구|WTO/gi, alt: "국제기구" },
+    { regex: /OECD/g, alt: "국제기구" },
+    { regex: /IMF/g, alt: "국제기구" },
+    { regex: /UNESCO|유네스코/gi, alt: "국제기구" },
+    { regex: /IAEA/g, alt: "국제기구" },
+    { regex: /NATO/g, alt: "국제기구" },
+    { regex: /Zoom\(줌\)|Zoom|줌/gi, alt: "화상 회의" },
+    { regex: /MBTI\(엠비티아이\)|엠비티아이|MBTI/gi, alt: "성격유형 검사" },
+    { regex: /VR\(브이알\)|브이알|VR/gi, alt: "가상현실" },
+    { regex: /AR\(에이알\)|에이알|AR/gi, alt: "증강현실" },
+    { regex: /HTML\(에이치티엠엘\)|에이치티엠엘|HTML/gi, alt: "하이퍼텍스트 마크업 언어 (또는 웹 페이지 제작 언어)" },
+    { regex: /CSS\(씨에스에스\)|씨에스에스|CSS/gi, alt: "스타일 시트 언어" },
+    { regex: /iPad\(아이패드\)|아이패드|iPad/gi, alt: "태블릿PC" },
+    { regex: /Galaxy Tab\(갤럭시탭\)|갤럭시탭|갤럭시\s*탭|Galaxy\s*Tab/gi, alt: "태블릿PC" },
+    { regex: /chrome book\(크롬북\)|크롬북|chrome\s*book|chromebook/gi, alt: "휴대용 컴퓨터" }
+  ],
+
   /**
    * Module 1: 인용구 존재 여부 검증 (Fuzzy & Exact 교차 분석)
    * @param {string} quote 인용구 텍스트
@@ -277,6 +330,21 @@ const ComplianceEngine = {
         issues.push({ type: "추상적_미사여구", term: match[0] });
       }
     });
+
+    // 6. 2026학년도 기재 유의어 필터링
+    if (this.GUIDELINE_REPLACEMENTS) {
+      this.GUIDELINE_REPLACEMENTS.forEach(item => {
+        const rx = new RegExp(item.regex.source, "gi");
+        const match = text.match(rx);
+        if (match) {
+          issues.push({ 
+            type: "기재_유의어_대체필요", 
+            term: match[0], 
+            suggestion: item.alt 
+          });
+        }
+      });
+    }
 
     return {
       passed: issues.length === 0,

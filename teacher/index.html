@@ -25,7 +25,7 @@
       <button class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem;" onclick="document.documentElement.setAttribute('data-theme', document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark')">🌗 테마 전환</button>
       <button class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem; border-color:var(--primary); background:rgba(0,180,216,0.06); color:var(--primary);" onclick="App.triggerJsonImport()">📥 학생 JSON 업로드</button>
       <button id="btn-copy-sync-link-adv" class="btn btn-primary" style="padding:6px 12px; font-size:0.8rem; background:#10b981; border-color:#10b981; color:#ffffff; display:none;" onclick="App.copyStudentSyncLink('advanced')">🔗 심화형 공유 링크 복사</button>
-      <button id="btn-copy-sync-link-basic" class="btn btn-primary" style="padding:6px 12px; font-size:0.8rem; background:#059669; border-color:#059669; color:#ffffff; display:none;" onclick="App.copyStudentSyncLink('basic')">🔗 기본형 공유 링크 복사</button>
+      <button id="btn-copy-sync-link-basic" class="btn btn-primary" style="padding:6px 12px; font-size:0.8rem; background:#059669; border-color:#059669; color:#ffffff; display:none;" onclick="App.copyStudentSyncLink('basic')">🔗 기초형 공유 링크 복사</button>
       <button class="btn btn-primary" style="padding:6px 12px; font-size:0.8rem;" onclick="App.exportToNEIS()">📥 NEIS 일괄 Export (CSV)</button>
       <input type="file" id="student-json-file-input" style="display:none;" accept=".json" onchange="App.handleJsonImport(event)">
     </div>
@@ -121,7 +121,10 @@
       <!-- 워크스페이스 헤더 제어창 -->
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; background:var(--bg-secondary); padding:12px 20px; border-radius:8px; border:1px solid var(--border);">
         <div>
-          <h2 style="margin:0; font-size:1.2rem; color:var(--text-primary);"><span id="workspace-student-name">-</span> 학생</h2>
+          <h2 style="margin:0; font-size:1.2rem; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
+            <span id="workspace-student-name">-</span> 학생
+            <span id="workspace-student-status" class="status-badge badge-none">-</span>
+          </h2>
           <div id="workspace-student-meta" style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">-</div>
         </div>
         <div style="display:flex; gap:10px; align-items:center;">

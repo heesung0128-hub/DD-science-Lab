@@ -538,3 +538,48 @@ body {
   outline: none;
   border-color: var(--primary);
 }
+
+/* 생기부 기재 보조 어휘 추천 패널 스타일 */
+.setuk-vocab-helper-box {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.vocab-category-title {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.vocab-words-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.vocab-word-capsule {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  outline: none;
+}
+
+.vocab-word-capsule:hover {
+  background-color: var(--primary-dark);
+  border-color: var(--primary);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.byte-warning-span {
+  font-size: 0.8rem;
+}
