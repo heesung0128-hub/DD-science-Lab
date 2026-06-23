@@ -1417,18 +1417,24 @@ textarea {
    12. 브라우저 전용 인쇄 및 A4 최적화 스타일시트 (@media print)
    ========================================================================== */
 @media print {
-  /* 브라우저 UI와 테두리를 배제하고 내용만 완벽 출력 */
+  @page {
+    size: A4;
+    margin: 0; /* 브라우저 기본 여백 비활성화로 2중 마진 해결 */
+  }
+  
   body {
     background: white !important;
     color: black !important;
   }
   
+  /* 프리뷰 인쇄 시 메인 페이지 레이아웃 전체 숨김 */
   header,
   .progress-container,
   .no-print,
   .form-navigation-footer,
   .pdf-modal-header,
-  .bg-glow-container {
+  .bg-glow-container,
+  .main-layout-container {
     display: none !important;
   }
   
@@ -1444,25 +1450,34 @@ textarea {
   }
   
   .pdf-modal-container {
+    width: 210mm; /* A4 가로폭 규격화 */
     max-width: 100%;
-    margin: 0;
+    margin: 0 auto;
+    gap: 0;
   }
   
   .pdf-preview-body {
     box-shadow: none !important;
     padding: 0 !important;
     background: white !important;
-    color: black !important;
+    color: #111111 !important;
   }
   
   .academic-page {
-    min-height: auto;
-    padding: 15mm 10mm;
+    width: 210mm;
+    min-height: 297mm; /* 인쇄 시에도 각 페이지가 하나의 완벽한 A4 규격 크기를 갖춤 */
+    padding: 20mm 15mm; /* 표준 학술 여백 제공 */
+    box-sizing: border-box;
     page-break-after: always;
+    page-break-inside: avoid;
     border-bottom: none !important;
     margin-bottom: 0 !important;
     box-shadow: none !important;
     border-radius: 0 !important;
+    position: relative;
+    background: white !important;
+    -webkit-print-color-adjust: exact; /* 프리뷰의 배경색상 강제 인쇄 적용 */
+    print-color-adjust: exact;
   }
   
   .page-break-before {
@@ -1470,12 +1485,16 @@ textarea {
   }
   
   .academic-box {
-    background: #ffffff !important;
-    border: 1px solid #cccccc !important;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
   
   .highlight-box {
-    background: #ffffff !important;
-    border: 2px solid #111111 !important;
+    background: #f0fdfa !important;
+    border: 1px solid #99f6e4 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 }
