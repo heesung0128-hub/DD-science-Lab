@@ -206,6 +206,7 @@ const AIEngine = {
 - 매핑 판정 영역: ${mapping.evaluation_dimensions.join(", ")}
 
 [절대 금지 사항 - 학생부 기재 위반 필터]
+0. 학생의 실제 성명(예: 홍길동)은 생활기록부에 기재할 수 없으므로, 모든 세특 초안 문장에는 절대로 학생의 이름을 기입하지 말고 대신 반드시 '학생'이라는 대명사를 사용하거나 주어가 생략된 서술 형식으로만 작성해 주십시오.
 1. 성적 석차 및 등급 관련 단어 절대 금지 ("최우수", "수석", "1등", "전교", "Top ", "최상위", "만점자").
 2. 외부 사교육 명칭 및 교외 활동 언급 절대 금지 ("학원", "과외", "사교육", "인강", "선행학습", "교외대회").
 3. 미래 잠재력의 과도한 주관적 예측 절대 금지 ("미래에는 ~할 것임", "노벨상을 받을", "훌륭한 과학자가 될 잠재력").
@@ -248,6 +249,10 @@ const AIEngine = {
       
       // 글자 수 세팅 후 반환
       parsed.variants.forEach(v => {
+        if (report.student_name && report.student_name.length > 1) {
+          const nameRegex = new RegExp(report.student_name, 'g');
+          v.text = v.text.replace(nameRegex, "학생");
+        }
         v.characters = v.text.length;
       });
       return parsed;
@@ -338,6 +343,49 @@ const AIEngine = {
   /**
    * 로컬 모의 세특 문장 초안 3대 대안 템플릿 생성기
    */
+  simulateDynamicSetuk: function (report, mapping) {
+    const element = CURRICULUM_DB.find(c => c.id === mapping.content_element_id) || { 내용요소: "교과 성취기준", 과목: report.step_1?.교과목?.과목명 || "교과" };
+    const topic = report.step_2?.선택_주제 || "자유 탐구";
+    const course = report.step_1?.교과목?.과목명 || element.과목 || "교과";
+    
+    // Extract key sentences from student report fields
+    const procedure = report.step_5?.절차_방법 || "";
+    const observation = report.step_6?.핵심_수치_관찰 || "";
+    const conclusion = report.step_7?.가설_검증?.최종_결론 || report.step_7?.사실_정리 || "";
+    
+    const cleanSentence = (text) => {
+      if (!text) return "";
+      const sentences = String(text).trim().split(/[.?!]\s+/);
+      return (sentences[0] || text).trim();
+    };
+
+    const shortProc = cleanSentence(procedure) || "스스로 설계한 탐구 계획";
+    const shortObs = cleanSentence(observation) || "탐구 수행 과정 중 유의미한 관찰 수치";
+    const shortConclusion = cleanSentence(conclusion) || "탐구를 통해 유도한 유효한 과학적 사실";
+
+    // Clean student name just in case it is in extracted sentences
+    const studentName = report.student_name || "";
+    const cleanText = (txt) => {
+      if (!txt) return "";
+      if (studentName) {
+        return txt.replace(new RegExp(studentName, 'g'), "학생");
+      }
+      return txt;
+    };
+
+    const cleanObs = cleanText(shortObs);
+    const cleanProc = cleanText(shortProc);
+    const cleanConclusion = cleanText(shortConclusion);
+
+    const short = `학생은 '${topic}' 탐구에서 ${element.내용요소} 원리를 분석하고, ${cleanObs} 사실을 포착하여 결론을 도출함.`;
+    
+    const standard = `학생은 ${course} 수업과 연계하여 '${topic}' 탐구를 자율 설계함. ${element.내용요소} 개념을 바탕으로 ${cleanProc} 절차를 충실히 수행하고, ${cleanObs} 결과를 수학·과학적으로 규명하며 학술적 분석 역량을 입증함.`;
+    
+    const rich = `학생은 평소 관심이 깊던 ${course} 단원의 핵심 이론을 실생활 문제와 결합하여 '${topic}'이라는 주제로 탐구를 수행함. ${element.내용요소}의 이론적 배경을 토대로 ${cleanProc} 측정 단계를 기획하여 데이터를 획득함. 자료 처리 과정에서 ${cleanObs} 사실을 체계적으로 도출하고, 분석 끝에 ${cleanConclusion} 결론을 이끌어내며 성취기준을 완벽히 소화함. 탐구 한계 극복을 위한 후속 탐구 방향까지 스스로 제시하는 메타인지적 탐구 자세가 극히 우수함.`;
+
+    return { short, standard, rich };
+  },
+
   extractDynamicCitations: function (report, element) {
     const citations = [];
     const possibleFields = [
@@ -410,29 +458,44 @@ const AIEngine = {
 
   simulateSetuk: function (report, mapping) {
     const element = CURRICULUM_DB.find(c => c.id === mapping.content_element_id);
-    const name = report.student_name || "이학생";
+    const reportText = JSON.stringify(report);
     const topic = report.step_2.선택_주제 || "자유 탐구";
+    const courseName = report.step_1?.교과목?.과목명 || element.과목 || "대수";
     
     let short = "";
     let standard = "";
     let rich = "";
 
-    if (element.id === "sci-physics-momentum-01-v2022") {
-      short = `${name}은 에어트랙 수레 충돌 실험에서 질량 조합 및 충돌 종류별 속도 변화를 포토게이트 센서로 실측하고 운동량 보존 법칙을 정량 규명함.`;
-      standard = `물리학Ⅰ 과목에 흥미가 깊은 학생으로, '${topic}'을 주제로 일차원 에어트랙 수레 충돌 실험을 자율 설계함. 포토게이트 센서로 획득한 충돌 전후 시간 데이터를 활용해 수레들의 최종 속도를 역산하고, 총 운동량 보존을 평균 2.65% 오차율 내에서 입증하며 수리 역학적 분석력이 우수함을 보여줌.`;
+    const hasPhysics = element.id === "sci-physics-momentum-01-v2022" && reportText.includes("에어트랙");
+    const hasChemistry = element.id === "sci-chemistry-rate-01-v2022" && reportText.includes("카탈레이스");
+    const hasMath = element.id === "math-algebra-log-01-v2022" && (reportText.includes("소음") || reportText.includes("데시벨"));
+
+    if (hasPhysics) {
+      short = `학생은 에어트랙 수레 충돌 실험에서 질량 조합 및 충돌 종류별 속도 변화를 포토게이트 센서로 실측하고 운동량 보존 법칙을 정량 규명함.`;
+      standard = `${courseName} 과목에 흥미가 깊은 학생으로, '${topic}'을 주제로 일차원 에어트랙 수레 충돌 실험을 자율 설계함. 포토게이트 센서로 획득한 충돌 전후 시간 데이터를 활용해 수레들의 최종 속도를 역산하고, 총 운동량 보존을 평균 2.65% 오차율 내에서 입증하며 수리 역학적 분석력이 우수함을 보여줌.`;
       rich = `물리학에 대한 학구열이 매우 뚜렷한 학생으로, '${topic}'을 탐구 과제로 삼아 에어트랙 장비를 활용하여 정밀 구동함. 포토게이트의 시간 해상도 한계를 버니어캘리퍼스로 직접 물리적 교정 세팅하고, 수레 질량비 조건별(1:1, 1:2) 및 탄성 여부에 따른 총 10회의 로우 데이터를 엑셀 수식에 대입하여 일차원 역학계 내 운동량 보존 상태를 완벽히 정량화함. 송풍기 공기 불균일에 따른 오차를 스스로 관찰하고 후속으로 2차원 카메라 트래킹 분석까지 모색하는 등 메타인지적 문제해결력과 실험 설계 역량이 탁월함.`;
-    } else if (element.id === "sci-chemistry-rate-01-v2022") {
-      short = `${name}은 이산화망가니즈와 카탈레이스 효소 촉매가 과산화수소 분해 반응 속도에 미치는 영향을 산소 포집 실측을 통해 정량적으로 대조 입증함.`;
-      standard = `화학적 변화와 생체 대사에 관심이 많아 '${topic}'을 탐구함. 과산화수소에 무기 촉매 MnO2와 감자즙 생체 효소를 온도별로 차등 투여하여 기체 발생 부피를 가스 주사기로 10초 단위 정밀 기록함. 온도가 상승할 때 무기 촉매와 생체 효소의 활성 격차(R값 변화율)를 분자 구조 변성 원리로 규명하며 탐구 역량이 뛰어남.`;
+    } else if (hasChemistry) {
+      short = `학생은 이산화망가니즈와 카탈레이스 효소 촉매가 과산화수소 분해 반응 속도에 미치는 영향을 산소 포집 실측을 통해 정량적으로 대조 입증함.`;
+      standard = `${courseName} 교과 및 화학적 변화와 생체 대사에 관심이 많아 '${topic}'을 탐구함. 과산화수소에 무기 촉매 MnO2와 감자즙 생체 효소를 온도별로 차등 투여하여 기체 발생 부피를 가스 주사기로 10초 단위 정밀 기록함. 온도가 상승할 때 무기 촉매와 생체 효소의 활성 격차(R값 변화율)를 분자 구조 변성 원리로 규명하며 탐구 역량이 뛰어남.`;
       rich = `'${topic}'에 관한 체계적인 실험 연구를 주도적으로 실시함. 화학 실험대 위에서 기체 누출 에러를 방지하고자 접합부에 실리콘 그리스 코팅을 보강하는 등 세심함을 발휘함. 20℃, 40℃, 60℃ 환경에서 무기 촉매와 카탈레이스의 활성을 교차 분석하여, 생체 단백질 촉매가 60℃에서 기질 결합 구조 변성으로 작용 중단됨을 R=0.2mL/s 수치로 도출함. 아레니우스 충돌 이론과 미카엘리스-멘텐 모델 연구를 후속 대안으로 제시하는 등 화학 지식 이해 깊이와 분석 집요함이 탁월함.`;
-    } else if (element.id === "math-algebra-log-01-v2022") {
-      short = `${name}은 거리 이격에 따른 소음 감쇄를 스마트 측정하여 dB 데시벨 값의 상용로그 함수 비례 모델을 정확하게 수학적으로 규명함.`;
-      standard = `수학Ⅰ 시간에 배운 상용로그의 실생활 쓰임에 매료되어 '${topic}' 탐구를 설계함. 학교 운동장에 80dB 지향성 음원을 설정하고 2의 거듭제곱 수열 거리에 따른 데시벨 수치를 스마트 미터기로 실측함. 음압 소실 비율과 인간 인지 데시벨 척도 간의 상용로그 함수적 규칙성(평균 6.15dB 감소)을 증명하여 학술적 수학 모델링 능력이 탁월함.`;
+    } else if (hasMath) {
+      short = `학생은 거리 이격에 따른 소음 감쇄를 스마트 측정하여 dB 데시벨 값의 상용로그 함수 비례 모델을 정확하게 수학적으로 규명함.`;
+      standard = `${courseName} 시간에 배운 상용로그의 실생활 쓰임에 매료되어 '${topic}' 탐구를 설계함. 학교 운동장에 80dB 지향성 음원을 설정하고 2의 거듭제곱 수열 거리에 따른 데시벨 수치를 스마트 미터기로 실측함. 음압 소실 비율과 인간 인지 데시벨 척도 간의 상용로그 함수적 규칙성(평균 6.15dB 감소)을 증명하여 학술적 수학 모델링 능력이 탁월함.`;
       rich = `교과서에서 배운 지수 및 로그 이론을 현실의 물리 현상과 접목시키는 융합적 수학 탐구 능력이 돋보임. '${topic}'을 위해 조용한 일요일 새벽을 택해 운동장 외벽 소리 반사 한계 요인을 자체 배제하고, 1m에서 16m까지의 등비 거리별 데시벨 데이터를 수집함. 실측된 수치들을 로그 회귀 수식 dB = a - 20*log10(R) 모델에 대입하여 이론값(6.02dB)과 2.15% 오차율로 정확히 일치함을 수학적으로 증명함. 수학적 개념이 어떻게 현실 데이터를 해석하는 기틀이 되는지 체득하여 자료 해석과 융합 추론 역량이 극히 탁월함.`;
     } else {
-      short = `${name}은 '${topic}'을 바탕으로 교과 교육과정 내용요소인 ${element.내용요소}의 성취기준을 정밀 탐구 분석함.`;
-      standard = `'${topic}'을 탐구 주제로 삼아 ${element.과목}의 성취기준인 ${element.내용요소} 원리를 연계 분석함. 탐구 활동 계획 수립부터 자료 수집까지 자기주도적으로 수행하여, 이론에서 제시된 성취 핵심 이론을 탐구 결과와 교차 매칭하여 이해하고 설명할 수 있는 분석 역량이 돋보임.`;
-      rich = `'${topic}' 주제를 ${element.과목}의 ${element.내용요소} 단원과 연계하여 체계적인 조사 탐구를 이행함. 보고서에서 제시된 풍부한 학술 인용 정보와 탐구 방법론을 기반으로 변인 간의 상관관계를 통계적으로 짚어내고, 탐구 수행 간 나타난 구조적 한계를 인식하여 이를 극복할 방안을 스스로 기술함. 단순히 주어진 공식에 그치지 않고 이론적 배경 지식의 기원에 깊이 있게 접근하며 자료 통합 이해력이 매우 탁월함.`;
+      const dynamicSetuk = this.simulateDynamicSetuk(report, mapping);
+      short = dynamicSetuk.short;
+      standard = dynamicSetuk.standard;
+      rich = dynamicSetuk.rich;
+    }
+
+    // Defensive replacement of student name in all simulated variants
+    const studentName = report.student_name || "";
+    if (studentName && studentName.length > 1) {
+      const nameRegex = new RegExp(studentName, 'g');
+      short = short.replace(nameRegex, "학생");
+      standard = standard.replace(nameRegex, "학생");
+      rich = rich.replace(nameRegex, "학생");
     }
 
     return {
