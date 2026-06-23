@@ -632,13 +632,14 @@ const App = {
     const editorArea = document.getElementById("right-setuk-editor");
     editorArea.innerHTML = "";
 
+    // 세특 변형(Variants)이 없으면, 현재의 finalSetuk을 바탕으로 기본 변형을 동적 생성하여 에디터가 정상 작동하도록 함
     if (!student.setukVariants) {
-      editorArea.innerHTML = `
-        <div style="padding:40px; text-align:center; color:var(--text-muted);">
-          매핑을 체크하고 상단 AI 생성을 연동하여 세특을 생성해 주세요.
-        </div>
-      `;
-      return;
+      const defaultText = student.finalSetuk || "";
+      student.setukVariants = [
+        { length: "short", text: defaultText, characters: defaultText.length },
+        { length: "standard", text: defaultText, characters: defaultText.length },
+        { length: "rich", text: defaultText, characters: defaultText.length }
+      ];
     }
 
     // 탭 헤더 그리기
@@ -821,6 +822,47 @@ const App = {
       }
     }
     this.saveStudentStateToCache(student);
+  },
+
+  /**
+   * 나이스(NEIS) 기준 바이트 수 계산 (한글=3Byte, 영문/공백/문장부호/줄바꿈=1Byte)
+   */
+  getByteLength: function (str) {
+    if (!str) return 0;
+    let byteLength = 0;
+    for (let i = 0; i < str.length; i++) {
+      const charCode = str.charCodeAt(i);
+      if (charCode > 127) {
+        byteLength += 3;
+      } else {
+        byteLength += 1;
+      }
+    }
+    return byteLength;
+  },
+
+  /**
+   * 커서 위치에 어휘 삽입
+   */
+  insertWordAtCursor: function (word) {
+    const textarea = document.getElementById("setuk-main-textarea");
+    if (!textarea) return;
+
+    const startPos = textarea.selectionStart;
+    const endPos = textarea.selectionEnd;
+    const text = textarea.value;
+
+    const beforeText = text.substring(0, startPos);
+    const afterText = text.substring(endPos, text.length);
+
+    textarea.value = beforeText + word + afterText;
+    textarea.focus();
+
+    const newPos = startPos + word.length;
+    textarea.selectionStart = newPos;
+    textarea.selectionEnd = newPos;
+
+    this.handleSetukTextareaInput(textarea.value);
   },
 
   /**
