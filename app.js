@@ -2580,6 +2580,100 @@ const App = {
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', exportFileDefaultName);
     linkElement.click();
+  },
+
+  updatePrefillSummaryCards: function () {
+    const step5Card = document.getElementById("step5-hypothesis-summary");
+    const step7Card = document.getElementById("step7-hypothesis-summary");
+
+    const hyp = this.report.step_4.가설 || "작성된 가설이 없습니다.";
+    const vars = this.report.step_4.변수 || {};
+    
+    let varsText = "배정된 변수 슬롯 없음";
+    if (Object.keys(vars).length > 0) {
+      varsText = Object.entries(vars)
+        .map(([k, v]) => `• <strong>${k}:</strong> ${parseVariableValue(v) || "미작성"}`)
+        .join(" | ");
+    }
+
+    const html = `
+      <h4>💡 4단계 연계 가설 및 변인 요약 정보 (읽기 전용)</h4>
+      <p>"${hyp}"</p>
+      <div>${varsText}</div>
+    `;
+
+    if (step5Card) step5Card.innerHTML = html;
+    if (step7Card) step7Card.innerHTML = html;
+  },
+
+  prefillStep6Values: function () {
+    // 만약 이미 자료 수집 칸에 내용이 있다면 덮어쓰지 않고 보호
+    const collectInput = document.getElementById("input-step6-collect");
+    if (!collectInput) return;
+    
+    if (this.report.step_6.자료_수집 && this.report.step_6.자료_수집.trim().length > 0) {
+      return;
+    }
+    
+    const procedure = this.report.step_5.절차_방법 || "";
+    if (!procedure.trim()) {
+      collectInput.value = "";
+      return;
+    }
+    
+    // 시제 전환 (미래/현재형 -> 과거형)
+    const converted = this.convertProcedureToPastTense(procedure);
+    this.report.step_6.자료_수집 = converted;
+    collectInput.value = converted;
+  },
+
+  convertProcedureToPastTense: function (text) {
+    if (!text) return "";
+    
+    let lines = text.split("\n");
+    let convertedLines = lines.map(line => {
+      let replaced = line;
+      // 교과 보고서 시제 전환용 매핑 규칙 (학술적 과거형 시제인 '~하였다', '~했다', '~확인했다' 등으로 변환)
+      const rules = [
+        { pattern: /설정한다/g, replace: "설정하였다" },
+        { pattern: /기록한다/g, replace: "기록하였다" },
+        { pattern: /실시한다/g, replace: "실시하였다" },
+        { pattern: /측정한다/g, replace: "측정하였다" },
+        { pattern: /분석한다/g, replace: "분석하였다" },
+        { pattern: /구현한다/g, replace: "구현하였다" },
+        { pattern: /수집한다/g, replace: "수집하였다" },
+        { pattern: /고정한다/g, replace: "고정하였다" },
+        { pattern: /세팅한다/g, replace: "세팅하였다" },
+        { pattern: /비교한다/g, replace: "비교하였다" },
+        { pattern: /검증한다/g, replace: "검증하였다" },
+        { pattern: /도출한다/g, replace: "도출하였다" },
+        { pattern: /준비한다/g, replace: "준비하였다" },
+        { pattern: /설계한다/g, replace: "설계하였다" },
+        { pattern: /연산한다/g, replace: "연산하였다" },
+        { pattern: /연계한다/g, replace: "연계하였다" },
+        { pattern: /정제한다/g, replace: "정제하였다" },
+        { pattern: /수행한다/g, replace: "수행하였다" },
+        { pattern: /참고한다/g, replace: "참고하였다" },
+        { pattern: /작성한다/g, replace: "작성하였다" },
+        { pattern: /배포한다/g, replace: "배포하였다" },
+        { pattern: /회수한다/g, replace: "회수하였다" },
+        { pattern: /유도한다/g, replace: "유도하였다" },
+        { pattern: /확인한다/g, replace: "확인하였다" },
+        { pattern: /제작한다/g, replace: "제작하였다" },
+        { pattern: /관측한다/g, replace: "관측하였다" },
+        { pattern: /분류한다/g, replace: "분류하였다" },
+        { pattern: /대조한다/g, replace: "대조하였다" },
+        { pattern: /한다/g, replace: "하였다" },
+        { pattern: /이다/g, replace: "이었다" }
+      ];
+      
+      rules.forEach(rule => {
+        replaced = replaced.replace(rule.pattern, rule.replace);
+      });
+      return replaced;
+    });
+    
+    return convertedLines.join("\n");
   }
 
 };
