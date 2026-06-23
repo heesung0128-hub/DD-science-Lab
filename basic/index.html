@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>수학·과학 주제탐구 보조 프로그램 (기초형)</title>
+  <!-- Google Fonts 로드 (Inter, Outfit, Noto Sans KR) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <!-- FontAwesome 6.4.0 CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Firebase SDK Compat -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+  <!-- 프리미엄 스타일시트 연동 -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- 글로잉 사이버네틱 학술 배경 장식 -->
+  <div class="bg-glow-container">
+    <div class="bg-glow-spot-1"></div>
+    <div class="bg-glow-spot-2"></div>
+  </div>
+
+  <!-- 헤더 영역 -->
+  <header>
+    <div class="logo-section">
+      <div class="logo-icon">Ag</div>
+      <div class="logo-title-group">
+        <h1>주제탐구 보조 프로그램 <span style="font-size: 0.8rem; background: var(--accent); color: white; padding: 2px 8px; border-radius: 12px; margin-left: 6px;">기초형</span></h1>
+        <p>고교 교육용 (기초 설계)</p>
+      </div>
+    </div>
+    
+    <div class="header-meta-controls">
+      <!-- 다중 탐구 셀렉터 -->
+      <div id="inquiry-selector-container" style="display: none; align-items: center; gap: 10px; background: #ffffff; border: 2.5px solid var(--primary); padding: 6px 14px; border-radius: 24px; white-space: nowrap; flex-shrink: 0; box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);">
+        <span style="font-size: 0.85rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 4px;">📂 탐구 과제:</span>
+        <select id="inquiry-select" onchange="App.handleInquiryChange()" style="padding: 5px 10px; font-size: 0.8rem; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 8px; color: #0f172a; cursor: pointer; max-width: 260px; outline: none; font-weight: 700; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); transition: border-color 0.2s;">
+          <!-- 동적 생성 -->
+        </select>
+        <button onclick="App.createNewInquiry()" style="background: #0284c7; border: none; color: #ffffff; font-size: 0.8rem; cursor: pointer; padding: 6px 12px; font-weight: 600; border-radius: 8px; transition: all 0.2s ease; white-space: nowrap; box-shadow: 0 2px 4px rgba(2, 132, 199, 0.2); display: inline-flex; align-items: center; gap: 4px;" onmouseover="this.style.background='#0369a1'; this.style.transform='scale(1.03)'" onmouseout="this.style.background='#0284c7'; this.style.transform='scale(1)'" title="새 탐구 생성"><i class="fa-solid fa-plus"></i> 새 탐구</button>
+        <button onclick="App.deleteCurrentInquiry()" style="background: #e11d48; border: none; color: #ffffff; font-size: 0.8rem; cursor: pointer; padding: 6px 12px; font-weight: 600; border-radius: 8px; transition: all 0.2s ease; white-space: nowrap; margin-left: 2px; box-shadow: 0 2px 4px rgba(225, 29, 72, 0.2); display: inline-flex; align-items: center; gap: 4px;" onmouseover="this.style.background='#be123c'; this.style.transform='scale(1.03)'" onmouseout="this.style.background='#e11d48'; this.style.transform='scale(1)'" title="현재 탐구 삭제"><i class="fa-solid fa-trash-can"></i> 삭제</button>
+      </div>
+
+      <div id="user-profile-badge" class="curriculum-tag" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-glass); display: none; align-items: center; gap: 8px;">
+        <span id="user-profile-display" style="font-weight: 600; color: var(--accent);">-</span>
+        <button onclick="App.logoutUser()" style="background: none; border: none; color: #ef4444; font-size: 0.75rem; cursor: pointer; padding: 2px 6px; font-weight: bold; transition: var(--transition);" title="로그아웃">로그아웃</button>
+      </div>
+      <div id="curriculum-indicator" class="curriculum-tag">
+        🔄 교육과정 분석 중...
+      </div>
+      <button class="btn-theme-toggle" onclick="App.toggleTheme()" title="화면 테마 전환">
+        🌓
+      </button>
+      <button class="btn-settings-toggle" onclick="App.openSettingsModal()" title="Gemini API 설정 및 관리">
+        ⚙️
+      </button>
+    </div>
+  </header>
+
+  <!-- 상단 단계 진행도 (Progress Bar - 4단계 구성) -->
+  <div class="progress-container">
+    <div class="progress-steps-list">
+      <div class="progress-line-bg"></div>
+      <div id="progress-line-fill" class="progress-line-fill" style="width: 0%;"></div>
+      
+      <!-- 1단계 -->
+      <a class="progress-step-item active" onclick="App.navigateToStep(1)">
+        <div class="step-number-circle">1</div>
+        <div class="step-label-text">기본 정보 & 주제</div>
+      </a>
+      <!-- 2단계 -->
+      <a class="progress-step-item" onclick="App.navigateToStep(2)">
+        <div class="step-number-circle">2</div>
+        <div class="step-label-text">탐구 방법 설계</div>
+      </a>
+      <!-- 3단계 -->
+      <a class="progress-step-item" onclick="App.navigateToStep(3)">
+        <div class="step-number-circle">3</div>
+        <div class="step-label-text">수행 & 결과 관찰</div>
+      </a>
+      <!-- 4단계 -->
+      <a class="progress-step-item" onclick="App.navigateToStep(4)">
+        <div class="step-number-circle">4</div>
+        <div class="step-label-text">최종 결론</div>
+      </a>
+    </div>
+  </div>
+
+  <!-- 메인 2열 분할 레이아웃 -->
+  <main class="main-layout-container">
+    
+    <!-- 좌측 (60%): 입력 폼 패널 -->
+    <section class="left-form-section">
+      
+      <!-- ----------------------------------------------------
+           1단계: 기본 정보 & 주제 설정
+           ---------------------------------------------------- -->
+      <div id="step-wrapper-1" class="form-step-wrapper active">
+        <div class="step-title-header">
+          <h2>1. 기본 정보 설정 & 탐구 주제 탐색</h2>
+          <p>학생 인적 사항과 관심 교과를 선택하고, AI의 제안을 활용해 흥미로운 주제를 결정합니다.</p>
+        </div>
+
+        <div class="form-group-section">
+          <div class="form-group-section-title">학적 정보 및 진로 계열</div>
+          
+          <div class="curriculum-grid-2col">
+            <div class="field-container">
+              <label for="input-student-name">학생 성명</label>
+              <input type="text" id="input-student-name" placeholder="로그인 계정 정보 연동" readonly>
+            </div>
+            <div class="field-container">
+              <label for="input-student-id">학번</label>
+              <input type="text" id="input-student-id" placeholder="학번 5자리" readonly>
+            </div>
+          </div>
+
+          <div class="curriculum-grid-2col">
+            <div class="field-container">
+              <label for="input-grade">학년</label>
+              <select id="input-grade" onchange="App.handleStep1Input()" disabled>
+                <option value="1">1학년</option>
+                <option value="2">2학년</option>
+                <option value="3">3학년</option>
+              </select>
+            </div>
+            <div class="field-container">
+              <label for="input-class">학급</label>
+              <select id="input-class" onchange="App.handleStep1Input()" disabled>
+                <option value="1">1반</option>
+                <option value="2">2반</option>
+                <option value="3">3반</option>
+                <option value="4">4반</option>
+                <option value="5">5반</option>
+                <option value="6">6반</option>
+                <option value="7">7반</option>
+                <option value="8">8반</option>
+                <option value="9">9반</option>
+                <option value="10">10반</option>
+                <option value="11">11반</option>
+                <option value="12">12반</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="curriculum-grid-3col">
+            <div class="field-container">
+              <label for="input-track">희망 계열</label>
+              <select id="input-track" onchange="App.handleStep1Input()">
+                <option value="자연과학">자연과학 계열</option>
+                <option value="공학">공학 계열</option>
+                <option value="의약·바이오">의약·바이오 계열</option>
+                <option value="사회과학">사회과학 계열</option>
+                <option value="인문과학">인문과학 계열</option>
+                <option value="예체능·융합">예체능·융합 계열</option>
+              </select>
+            </div>
+            <div class="field-container">
+              <label for="input-major">희망 학과</label>
+              <input type="text" id="input-major" placeholder="예: 생명공학과, 물리학과" oninput="App.handleStep1Input()">
+            </div>
+            <div class="field-container">
+              <label for="input-career">희망 진로</label>
+              <input type="text" id="input-career" placeholder="예: 신약 연구원, 로봇 공학자" oninput="App.handleStep1Input()">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group-section">
+          <div class="form-group-section-title">탐구 연계 핵심 교과 분류</div>
+          
+          <div class="curriculum-grid-3col">
+            <div class="field-container">
+              <label for="input-subject-group">교과 대분류</label>
+              <select id="input-subject-group" onchange="App.updateSubjectDropdown()">
+                <option value="과학">과학 교과</option>
+                <option value="수학">수학 교과</option>
+                <option value="융합">융합 교과</option>
+              </select>
+            </div>
+            <div class="field-container">
+              <label for="input-subject-cat">교과 구분</label>
+              <select id="input-subject-cat" onchange="App.updateSubjectDropdown()">
+                <option value="공통">공통 과목</option>
+                <option value="일반선택">일반선택 과목</option>
+                <option value="진로선택">진로선택 과목</option>
+                <option value="융합선택">융합선택 과목</option>
+                <option value="기타">기타 (직접 입력)</option>
+              </select>
+            </div>
+            <div class="field-container">
+              <label for="input-subject-name">과목명</label>
+              <select id="input-subject-name" onchange="App.handleStep1Input()">
+                <!-- JS 동적 매핑 -->
+              </select>
+              <input type="text" id="input-subject-name-direct" placeholder="교과 과목명 직접 입력" style="display:none; margin-top:8px;" oninput="App.handleStep1Input()">
+            </div>
+          </div>
+          <div id="grade-subject-warning" class="curriculum-alert-banner" style="display:none; margin-top:12px;">
+            <span>⚠️ 학년 및 과목 매칭 분석 중...</span>
+          </div>
+        </div>
+
+        <div class="form-group-section">
+          <div class="form-group-section-title">관심 키워드 등록 및 탐구 유형</div>
+          <div class="field-container">
+            <label>태그 등록 (최대 5개)</label>
+            <div class="keyword-tag-input-container" id="keyword-tag-container">
+              <input type="text" id="input-keyword-tag" placeholder="엔터 또는 쉼표(,)로 키워드를 입력하세요" onkeydown="App.handleKeywordKeydown(event)">
+            </div>
+            <button class="btn btn-secondary" onclick="App.showRecommendedKeywords()" style="margin-top: 10px; font-size: 0.75rem; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px;">
+              🪄 계열 맞춤형 추천 키워드 보기
+            </button>
+            <div class="recommended-keywords-wrapper" id="recommended-keywords-box" style="display:none;"></div>
+          </div>
+
+          <div class="field-container">
+            <label>탐구 유형 선택</label>
+            <div class="exploration-types-grid" id="exploration-types-grid">
+              <!-- JS 동적 생성 -->
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group-section">
+          <div class="form-group-section-title">탐구 주제 확정</div>
+          <div style="margin-bottom: 20px;">
+            <button class="btn btn-primary" onclick="App.triggerTopicGeneration()" style="width:100%; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700;">
+              🤖 AI 키워드 정합성 검정 및 탐구 주제 5종 추천 받기
+            </button>
+          </div>
+
+          <div class="ai-topic-generation-section" id="phase-b-section" style="display:none; margin-bottom: 20px;">
+            <h4>🔮 AI 추천 주제 후보 내역</h4>
+            <div id="phase-b-content"></div>
+          </div>
+
+          <div class="field-container">
+            <div class="field-label-group">
+              <label for="input-final-theme">확정된 탐구 주제</label>
+            </div>
+            <input type="text" id="input-final-theme" placeholder="예: 'MBL 압력 센서를 활용한 온도 변화에 따른 기체 확산 속도의 정량적 비교'" oninput="App.handleStep2Input()">
+            <div id="topic-curriculum-warning" class="curriculum-alert-banner" style="display:none; margin-top:10px;">
+              <span></span>
+            </div>
+          </div>
+
+          <div class="field-container">
+            <div class="field-label-group">
+              <label for="input-theme-motivation">탐구 동기 (선택)</label>
+            </div>
+            <textarea id="input-theme-motivation" placeholder="이 주제를 탐구하고 싶게 만든 수업 시간의 호기심이나 일상의 흥미를 가볍게 적어보세요." oninput="App.handleStep2Input()"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- ----------------------------------------------------
+           2단계: 탐구 방법 설계
+           ---------------------------------------------------- -->
+      <div id="step-wrapper-2" class="form-step-wrapper">
+        <div class="step-title-header">
+          <h2>2. 탐구 방법 및 설계 절차</h2>
+          <p>탐구 계획을 명확하고 구체적인 실행 단계로 설계합니다.</p>
+        </div>
+
+        <div class="form-group-section">
+          <div class="field-container">
+            <div class="field-label-group">
+              <label for="input-step5-procedure" id="label-step5-procedure">1. 절차 및 상세 방법</label>
+              <button class="btn-ai-suggest-inline" onclick="App.openAiSuggestInline(5, '절차_방법', 'input-step5-procedure')">✨ AI 추천 후보</button>
+            </div>
+            <textarea id="input-step5-procedure" placeholder="실험 순서나 비교 분석 단계를 순차적인 번호(1, 2, 3)를 매겨 구체적으로 적으세요." oninput="App.handleGenericInput(5)"></textarea>
+          </div>
+
+          <div class="field-container">
+            <div class="field-label-group">
+              <label for="input-step5-tools" id="label-step5-tools">2. 도구 및 준비 자료</label>
+              <button class="btn-ai-suggest-inline" onclick="App.openAiSuggestInline(5, '도구_자료', 'input-step5-tools')">✨ AI 추천 후보</button>
+            </div>
+            <textarea id="input-step5-tools" placeholder="실제 사용되는 기자재, 수량, 센서 사양, 소프트웨어 툴 등을 나열하세요." oninput="App.handleGenericInput(5)"></textarea>
+          </div>
+
+          <div class="field-container">
+            <div class="field-label-group">
+              <label for="input-step5-reliability">3. 오차 방지 및 신뢰성 확보 방안 (선택)</label>
+              <button class="btn-ai-suggest-inline" onclick="App.openAiSuggestInline(5, '신뢰성_타당성', 'input-step5-reliability')">✨ AI 추천 후보</button>
+            </div>
+            <textarea id="input-step5-reliability" placeholder="예: '온도 오차를 최소화하기 위해 항온수조를 사용하고 3회 반복 측정하여 평균값을 사용한다'" oninput="App.handleGenericInput(5)"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- ----------------------------------------------------
+           3단계: 수행 & 결과 관찰
+           ---------------------------------------------------- -->
+      <div id="step-wrapper-3" class="form-step-wrapper">
+        <div class="step-title-header">
+          <h2>3. 탐구 수행 및 데이터 관찰</h2>
+          <p>설계한 절차에 따라 실제 탐구를 수행하고 수집된 자료나 핵심 실측치를 기록합니다.</p>
+        </div>
+
+        <div class="form-group-section">
+          <div class="field-container">
+            <div class="field-label-group">
+              <label for="input-step6-collect">1. 자료 수집 내역</label>
+              <button class="btn-ai-suggest-inline" onclick="App.openAiSuggestInline(6, '자료_수집', 'input-step6-collect')">✨ AI 추천 후보</button>
+            </div>
+            <div class="field-helper-tip" style="margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+              <div>
+                <span class="prefill-badge">2단계 계획 연계 prefill</span> 아래는 2단계 방법 설계를 바탕으로 수행을 시작하기 위해 prefill된 시제 전환 결과물입니다. 자유롭게 수정해 보세요.
+              </div>
+              <button class="btn" onclick="App.forcePrefillStep6()" style="padding: 2px 6px; font-size: 0.65rem; margin: 0; display: inline-flex; align-items: center; gap: 4px; border-color: var(--accent); color: var(--accent); background: transparent; cursor: pointer; border-radius: 4px; font-weight: 600;">
+                🔄 계획에서 가져오기
+              </button>
+            </div>
+            <textarea id="input-step6-collect" class="prefilled-field" oninput="App.handleGenericInput(6)"></textarea>
+          </div>
+
+          <div class="field-container">
+            <div class="field-label-group">
+              <label for="input-step6-process">2. 자료 처리 및 분석 과정</label>
+              <button class="btn-ai-suggest-inline" onclick="App.openAiSuggestInline(6, '자료_처리_분석', 'input-step6-process')">✨ AI 추천 후보</button>
+            </div>
+            <textarea id="input-step6-process" placeholder="수집한 날 것의 자료에서 오류를 정제하고 분석하기 좋게 가공하거나 계산을 거친 과정을 씁니다." oninput="App.handleGenericInput(6)"></textarea>
+          </div>
+
+          <div class="field-container">
+            <div class="field-label-group">
+              <label for="input-step6-observation">3. 핵심 관찰 결과 및 수치 기록</label>
+              <button class="btn-ai-suggest-inline" onclick="App.openAiSuggestInline(6, '핵심_수치_관찰', 'input-step6-observation')">✨ AI 추천 후보</button>
+            </div>
+            <textarea id="input-step6-observation" placeholder="탐구를 통해 직접 실측하거나 관찰하여 얻어낸 핵심 수치 결과들을 기록합니다. (예: 'A 조건의 평균 반응 시간은 1.2초, B 조건은 2.1초로 약 1.7배 차이를 나타냄')" oninput="App.handleGenericInput(6)"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- ----------------------------------------------------
+           4단계: 최종 결론
+           ---------------------------------------------------- -->
+      <div id="step-wrapper-4" class="form-step-wrapper">
+        <div class="step-title-header">
+          <h2>4. 최종 결론 및 정리</h2>
+          <p>모인 자료를 바탕으로 탐구에 대한 최종 결론을 내리고, 아쉬운 점과 향후 알아보고 싶은 점을 정리합니다.</p>
+        </div>
+
+        <div class="form-group-section">
+          <div class="field-container">
+            <div class="field-label-group">
+              <label for="input-step7-facts">1. 탐구 결과 요약 (사실 정리)</label>
+              <button class="btn-ai-suggest-inline" onclick="App.openAiSuggestInline(7, '사실_정리', 'input-step7-facts')">✨ AI 추천 후보</button>
+            </div>
+            <textarea id="input-step7-facts" placeholder="탐구를 통해 관찰한 결과를 바탕으로 발견해낸 구체적인 사실을 정리합니다." oninput="App.handleGenericInput(7)"></textarea>
+          </div>
+
+          <div class="field-container">
+            <div class="field-label-group">
+              <label for="input-step7-final-conclusion">2. 최종 종합 결론</label>
+            </div>
+            <textarea id="input-step7-final-conclusion" placeholder="탐구를 통해 깨닫고 알게 된 최종적인 한 줄 결론을 정성껏 작성하세요." oninput="App.handleStep7Input()"></textarea>
+            <p class="field-helper-tip" style="color: var(--accent);">⚠️ AI는 결론을 대신 써주지 않습니다. 본인이 탐구하고 관찰한 결과에 입각하여 직접 문장을 구성해야 합니다.</p>
+          </div>
+
+          <div class="field-container">
+            <div class="field-label-group">
+              <label for="input-step7-limits">3. 탐구 한계 및 후속 탐구 과제 (선택)</label>
+              <button class="btn-ai-suggest-inline" onclick="App.openAiSuggestInline(7, '한계_후속', 'input-step7-limits')">✨ AI 추천 후보</button>
+            </div>
+            <textarea id="input-step7-limits" placeholder="예: '수동 초시계로 반응 속도를 기록하여 미세 오차가 발생한 아쉬움이 있으며, 향후 정밀 타이밍 모듈을 이용한 후속 탐구가 필요함'" oninput="App.handleGenericInput(7)"></textarea>
+          </div>
+        </div>
+
+        <div style="margin-top: 24px; display: flex; gap: 12px; justify-content: flex-end;">
+          <button class="btn btn-secondary" style="flex:1; border-color: var(--primary); color: var(--primary);" onclick="App.exportReportJson()">
+            📥 보고서 데이터 내보내기 (JSON 백업)
+          </button>
+          <button class="btn btn-accent" style="flex:1;" onclick="App.openFinalPreview()">
+            🎉 학술 규격 보고서 미리보기 & PDF 출력하기
+          </button>
+        </div>
+      </div>
+
+      <!-- 공통 폼 하단 내비게이션 풋터 -->
+      <div class="form-navigation-footer">
+        <button id="btn-nav-prev" class="btn btn-secondary btn-disabled" onclick="App.navigatePrev()">◀ 이전 단계</button>
+        <div style="display:flex; align-items:center; font-size:0.75rem; color:var(--text-muted);" id="auto-save-status">
+          💾 자동 임시저장 활성화 중
+        </div>
+        <button id="btn-nav-next" class="btn btn-primary" onclick="App.navigateNext()">다음 단계 ▶</button>
+      </div>
+
+    </section>
+
+    <!-- 우측 (40%): AI 어시스턴트 및 멘토 조언 공간 -->
+    <section class="right-ai-section">
+      
+      <!-- 상단: 접기/펼치기가 가능한 이전 단계 주요 내용 요약 카드 -->
+      <div class="ai-card ai-summary-card">
+        <div class="ai-summary-header" onclick="App.toggleSummaryCollapse()">
+          <h3>🔍 이전 단계 입력 요약 현황</h3>
+          <span id="summary-collapse-arrow">▼</span>
+        </div>
+        <div class="summary-content-box" id="summary-content-box">
+          <!-- JS에서 동적으로 데이터 요약 출력 -->
+        </div>
+      </div>
+
+      <!-- 중단: 단계별 AI 멘토의 조언 (이모지 카드 형태) -->
+      <div class="ai-card ai-mentor-card">
+        <h3>💡 AI 탐구 멘토의 실시간 조언</h3>
+        <div class="ai-mentor-advice-box">
+          <div class="ai-advice-bubble">
+            <div class="ai-advice-bubble-icon" id="ai-mentor-avatar">👨‍🏫</div>
+            <div class="ai-advice-text" id="ai-mentor-advice-text">
+              <p>반갑습니다! 멋진 주도적 탐구 여정을 시작해 볼까요?</p>
+              <p>먼저 왼쪽 1단계 폼에서 학년과 계열, 관심 과목을 선택하시면 교육과정을 자동으로 계산하여 맞춤 가이드를 구성해 드릴게요.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 하단: 단계별 도움말 및 우수 예시 보기 -->
+      <div class="ai-card ai-guide-card">
+        <h3>📚 단계별 학습 도움말 & 예시</h3>
+        <div class="ai-guide-tabs">
+          <button id="guide-tab-help" class="ai-guide-tab active" onclick="App.switchGuideTab('help')">도움 가이드</button>
+          <button id="guide-tab-example" class="ai-guide-tab" onclick="App.switchGuideTab('example')">우수 탐구 예시</button>
+        </div>
+        <div class="ai-guide-content" id="ai-guide-content-area">
+          <!-- JS 동적 로딩 -->
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ----------------------------------------------------
+       팝업/모달 영역
+       ---------------------------------------------------- -->
+
+  <!-- 인라인 AI 답변 추천 팝오버 -->
+  <div id="ai-suggest-popover-root" style="display:none;">
+    <div class="ai-suggest-backdrop" onclick="App.closeAiSuggestInlineModal()"></div>
+    <div class="ai-suggest-popover">
+      <div class="popover-header">
+        <h3>🪄 AI 추천 답변 후보 목록</h3>
+        <button class="btn btn-secondary" onclick="App.closeAiSuggestInlineModal()" style="padding:2px 8px;">닫기</button>
+      </div>
+      <p class="field-helper-tip" style="margin-bottom:12px;">원하는 추천 문장을 선택하여 입력창에 삽입하고, 나만의 문장으로 수정하세요.</p>
+      <div class="popover-candidates-list" id="popover-candidates-list">
+        <!-- 후보군 3개 동적 생성 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- API 설정 및 관리 모달 -->
+  <div id="settings-modal-root" style="display:none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 1000; justify-content: center; align-items: center;">
+    <div class="meta-modal-backdrop" onclick="App.closeSettingsModal()" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px);"></div>
+    <div class="meta-modal-container" style="position: relative; z-index: 1001; background: var(--bg-surface); border: 1px solid var(--border-glass); border-radius: var(--radius-lg); padding: 24px; max-width: 480px; width: 90%; box-shadow: var(--shadow-glow); color: var(--text-primary);">
+      <div class="meta-modal-title" style="font-size: 1.25rem; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border-glass); padding-bottom: 12px;">⚙️ Antigravity 시스템 설정</div>
+      <p class="meta-modal-desc" style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 16px;">
+        실시간 AI 탐구 설계를 사용하기 위한 설정을 관리합니다. 입력하신 API 키는 브라우저의 로컬 환경(LocalStorage)에만 안전하게 저장되며 외부로 수집되지 않습니다.
+      </p>
+
+      <!-- AI Provider Selector -->
+      <div class="meta-check-section" style="margin-bottom: 16px;">
+        <label for="settings-ai-provider" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.85rem; color: var(--primary);">AI 서비스 제공자</label>
+        <select id="settings-ai-provider" onchange="App.onSettingsProviderChange()" style="width: 100%; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-panel); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; outline: none; box-sizing: border-box; transition: var(--transition);">
+          <option value="gemini">구글 Gemini API (API 키 필요)</option>
+          <option value="gemini-web-bridge">구글 Gemini 웹 (무료/API 키 없음)</option>
+          <option value="openai">OpenAI ChatGPT</option>
+          <option value="claude">안드로픽 Claude</option>
+        </select>
+      </div>
+
+      <!-- AI Model Selector -->
+      <div class="meta-check-section" style="margin-bottom: 16px;">
+        <label for="settings-ai-model" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.85rem; color: var(--primary);">AI 모델 선택</label>
+        <select id="settings-ai-model" style="width: 100%; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-panel); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; outline: none; box-sizing: border-box; transition: var(--transition);">
+          <!-- JS에서 제공자 선택에 따라 옵션을 동적으로 추가함 -->
+        </select>
+      </div>
+
+      <!-- Gemini Key Section -->
+      <div class="meta-check-section settings-key-section" id="section-key-gemini" style="margin-bottom: 16px;">
+        <label for="settings-gemini-key" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.85rem; color: var(--primary);">Gemini API 키</label>
+        <input type="password" id="settings-gemini-key" placeholder="AI API 키를 입력하세요 (AIzaSy...)" style="width: 100%; padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-panel); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; outline: none; box-sizing: border-box; transition: var(--transition);">
+      </div>
+
+      <!-- OpenAI Key Section -->
+      <div class="meta-check-section settings-key-section" id="section-key-openai" style="margin-bottom: 16px; display: none;">
+        <label for="settings-openai-key" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.85rem; color: var(--primary);">OpenAI API 키</label>
+        <input type="password" id="settings-openai-key" placeholder="sk-proj-... 형태로 입력하세요" style="width: 100%; padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-panel); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; outline: none; box-sizing: border-box; transition: var(--transition);">
+      </div>
+
+      <!-- Claude Key Section -->
+      <div class="meta-check-section settings-key-section" id="section-key-claude" style="margin-bottom: 16px; display: none;">
+        <label for="settings-claude-key" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.85rem; color: var(--primary);">Claude API 키</label>
+        <input type="password" id="settings-claude-key" placeholder="sk-ant-... 형태로 입력하세요" style="width: 100%; padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-panel); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; outline: none; box-sizing: border-box; transition: var(--transition);">
+      </div>
+
+      <!-- CORS Proxy Section -->
+      <div class="meta-check-section" id="section-cors-proxy" style="margin-bottom: 16px; display: none;">
+        <label for="settings-cors-proxy" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.85rem; color: var(--primary);">CORS 프록시 URL (선택)</label>
+        <input type="text" id="settings-cors-proxy" placeholder="예: https://cors-anywhere.herokuapp.com/" style="width: 100%; padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-panel); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; outline: none; box-sizing: border-box; transition: var(--transition);">
+        <p class="field-helper-tip" style="margin-top: 6px; font-size: 0.7rem; color: var(--text-muted); line-height: 1.4;">
+          * Claude API는 브라우저 직접 호출 시 CORS 보안 에러가 나므로 우회 프록시 URL 주소를 입력해 주어야 작동합니다.
+        </p>
+      </div>
+
+      <!-- Fallback info -->
+      <div class="meta-check-section" style="margin-bottom: 12px;">
+        <p class="field-helper-tip" style="margin-top: 8px; font-size: 0.75rem; color: var(--text-muted); line-height: 1.45;">
+          * 선택된 AI 공급자의 API 키를 비워둘 경우, AI 제안 시 <strong>모의 체험(Simulated) AI 모드</strong>로 자동 폴백하여 고품질의 어울리는 주제들을 설계합니다.
+        </p>
+      </div>
+
+      <!-- Firebase Cloud Sync Section -->
+      <div style="border-top: 1px solid var(--border-glass); padding-top: 14px; margin-top: 12px; margin-bottom: 16px;">
+        <label style="display: block; font-weight: 700; margin-bottom: 6px; font-size: 0.85rem; color: var(--accent);">📡 Firebase 실시간 클라우드 DB 연동</label>
+        <p class="field-helper-tip" style="font-size: 0.7rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 10px;">
+          선생님이 제공한 공유 링크를 사용하지 않고 개별적으로 실시간 연동을 연결하려면 입력하세요. (비워둘 시 오프라인 모드로 자동 작동)
+        </p>
+        
+        <div style="margin-bottom: 10px;">
+          <label for="settings-firebase-url" style="display: block; font-weight: 600; margin-bottom: 4px; font-size: 0.75rem; color: var(--text-primary);">Firebase Database URL</label>
+          <input type="text" id="settings-firebase-url" placeholder="https://[프로젝트ID]-default-rtdb.firebaseio.com/" style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-panel); color: var(--text-primary); font-family: inherit; font-size: 0.8rem; outline: none; box-sizing: border-box; transition: var(--transition);">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div>
+            <label for="settings-firebase-key" style="display: block; font-weight: 600; margin-bottom: 4px; font-size: 0.75rem; color: var(--text-primary);">API Key (선택)</label>
+            <input type="password" id="settings-firebase-key" placeholder="AIzaSy..." style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-panel); color: var(--text-primary); font-family: inherit; font-size: 0.8rem; outline: none; box-sizing: border-box; transition: var(--transition);">
+          </div>
+          <div>
+            <label for="settings-firebase-project" style="display: block; font-weight: 600; margin-bottom: 4px; font-size: 0.75rem; color: var(--text-primary);">Project ID (선택)</label>
+            <input type="text" id="settings-firebase-project" placeholder="프로젝트ID" style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-panel); color: var(--text-primary); font-family: inherit; font-size: 0.8rem; outline: none; box-sizing: border-box; transition: var(--transition);">
+          </div>
+        </div>
+      </div>
+
+      <div class="meta-modal-footer" style="display: flex; gap: 12px; justify-content: flex-end; border-top: 1px solid var(--border-glass); padding-top: 16px;">
+        <button class="btn btn-secondary" onclick="App.closeSettingsModal()" style="padding: 8px 16px;">닫기</button>
+        <button class="btn btn-primary" onclick="App.saveSettingsKey()" style="padding: 8px 16px;">💾 설정 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 학생 로그인/회원가입 모달 -->
+  <div id="auth-modal-root" style="display:none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 2000; justify-content: center; align-items: center;">
+    <div class="meta-modal-backdrop" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(12px);"></div>
+    <div class="meta-modal-container" style="position: relative; z-index: 2001; background: var(--bg-surface); border: 1px solid var(--border-glass); border-radius: var(--radius-lg); padding: 28px; max-width: 420px; width: 90%; box-shadow: var(--shadow-glow); color: var(--text-primary);">
+      
+      <!-- Login Tab View -->
+      <div id="auth-login-view">
+        <div class="meta-modal-title" style="font-size: 1.4rem; font-weight: 800; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; color: var(--primary);">
+          🔑 학생 탐구용 로그인
+        </div>
+        <p class="meta-modal-desc" style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 20px; line-height: 1.45;">
+          기재하신 아이디와 비밀번호를 사용하여 진행 중이던 보고서와 탐구 설계를 그대로 불러옵니다.
+        </p>
+        
+        <div class="meta-check-section" style="margin-bottom: 12px;">
+          <label for="auth-login-id" style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.8rem; color: var(--text-secondary);">아이디 (ID)</label>
+          <input type="text" id="auth-login-id" placeholder="아이디를 입력하세요" style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-panel); color: var(--text-primary); outline: none; box-sizing: border-box;">
+        </div>
+        
+        <div class="meta-check-section" style="margin-bottom: 20px;">
+          <label for="auth-login-pw" style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.8rem; color: var(--text-secondary);">비밀번호</label>
+          <input type="password" id="auth-login-pw" placeholder="비밀번호를 입력하세요" style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-panel); color: var(--text-primary); outline: none; box-sizing: border-box;">
+        </div>
+        
+        <button class="btn btn-primary" onclick="App.loginUser()" style="width: 100%; padding: 12px; font-weight: 700; margin-bottom: 16px;">로그인</button>
+        
+        <div style="text-align: center; font-size: 0.8rem; color: var(--text-muted);">
+          아직 계정이 없으신가요? 
+          <a href="#" onclick="App.toggleAuthView('register')" style="color: var(--primary); font-weight: 600; text-decoration: none;">회원가입</a>
+        </div>
+      </div>
+
+      <!-- Register Tab View -->
+      <div id="auth-register-view" style="display:none;">
+        <div class="meta-modal-title" style="font-size: 1.4rem; font-weight: 800; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; color: var(--primary);">
+          📝 학생 계정 등록 (회원가입)
+        </div>
+        <p class="meta-modal-desc" style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.45;">
+          로그인을 위한 계정을 신규 개설합니다. 기입한 이름과 학번은 최종 보고서와 교사용 대시보드에 연계됩니다.
+        </p>
+        
+        <div class="meta-check-section" style="margin-bottom: 12px;">
+          <label for="auth-reg-id" style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.8rem; color: var(--text-secondary);">아이디 (ID)</label>
+          <input type="text" id="auth-reg-id" placeholder="새 아이디를 적어주세요" style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-panel); color: var(--text-primary); outline: none; box-sizing: border-box;">
+        </div>
+        
+        <div class="meta-check-section" style="margin-bottom: 12px;">
+          <label for="auth-reg-pw" style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.8rem; color: var(--text-secondary);">비밀번호</label>
+          <input type="password" id="auth-reg-pw" placeholder="새 비밀번호를 적어주세요" style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-panel); color: var(--text-primary); outline: none; box-sizing: border-box;">
+        </div>
+
+        <div class="curriculum-grid-2col" style="gap: 12px; margin-bottom: 20px;">
+          <div class="meta-check-section" style="margin-bottom: 0;">
+            <label for="auth-reg-name" style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.8rem; color: var(--text-secondary);">학생 성명</label>
+            <input type="text" id="auth-reg-name" placeholder="예: 홍길동" style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-panel); color: var(--text-primary); outline: none; box-sizing: border-box;">
+          </div>
+          <div class="meta-check-section" style="margin-bottom: 0;">
+            <label for="auth-reg-student-id" style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.8rem; color: var(--text-secondary);">학번 (5자리)</label>
+            <input type="text" id="auth-reg-student-id" placeholder="예: 10101" style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-panel); color: var(--text-primary); outline: none; box-sizing: border-box;">
+          </div>
+        </div>
+        
+        <button class="btn btn-primary" onclick="App.registerUser()" style="width: 100%; padding: 12px; font-weight: 700; margin-bottom: 16px;">계정 생성 및 로그인</button>
+        
+        <div style="text-align: center; font-size: 0.8rem; color: var(--text-muted);">
+          이미 계정이 있으신가요? 
+          <a href="#" onclick="App.toggleAuthView('login')" style="color: var(--primary); font-weight: 600; text-decoration: none;">로그인</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 제미나이 웹 브릿지 모달 -->
+  <div id="web-bridge-modal-root" style="display:none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 2100; justify-content: center; align-items: center;">
+    <div class="meta-modal-backdrop" onclick="App.closeWebBridgeModal()" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(12px);"></div>
+    <div class="meta-modal-container" style="position: relative; z-index: 2101; background: var(--bg-surface); border: 1.5px solid var(--primary); border-radius: var(--radius-lg); padding: 28px; max-width: 600px; width: 90%; box-shadow: var(--shadow-glow); color: var(--text-primary); display: flex; flex-direction: column; gap: 16px;">
+      
+      <div class="meta-modal-title" style="font-size: 1.35rem; font-weight: 800; display: flex; align-items: center; gap: 8px; color: var(--primary); border-bottom: 1px solid var(--border-glass); padding-bottom: 12px; margin-bottom: 4px;">
+        🤖 제미나이 웹 브릿지 (무료/API 키 없음)
+      </div>
+      
+      <div style="font-size: 0.85rem; line-height: 1.5; color: var(--text-secondary);">
+        <p style="margin: 0 0 8px 0;">학생의 개인 <strong>교육용 제미나이(gemini.google.com)</strong> 계정을 활용하는 안전한 연결 방식입니다.</p>
+        <ol style="margin: 0; padding-left: 20px;">
+          <li style="margin-bottom: 6px;">아래 프롬프트 창 우측의 <strong>'복사하고 제미나이로 이동'</strong> 버튼을 클릭합니다.</li>
+          <li style="margin-bottom: 6px;">열린 제미나이 웹페이지 채팅창에 붙여넣고(Ctrl+V) 전송합니다.</li>
+          <li style="margin-bottom: 6px;">제미나이의 <strong>답변 전체를 복사(Ctrl+A 후 Ctrl+C 또는 복사 아이콘 클릭)</strong>합니다.</li>
+          <li style="margin-bottom: 0;">아래 '제미나이 답변 붙여넣기' 영역에 입력하고 <strong>'분석 및 적용하기'</strong>를 누르세요.</li>
+        </ol>
+      </div>
+
+      <!-- 복사용 프롬프트 텍스트 영역 -->
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <label style="font-weight: 700; font-size: 0.8rem; color: var(--accent);">📋 복사할 프롬프트</label>
+        <div style="position: relative; border: 1px solid var(--border-glass); border-radius: var(--radius-sm); background: var(--bg-panel); padding: 12px;">
+          <textarea id="web-bridge-prompt-textarea" readonly style="width: 100%; height: 160px; border: none; background: transparent; color: var(--text-primary); font-family: monospace; font-size: 0.8rem; resize: none; outline: none; margin: 0; box-sizing: border-box;"></textarea>
+        </div>
+        <button class="btn btn-primary" id="btn-web-bridge-copy" onclick="App.copyWebBridgePrompt()" style="align-self: flex-end; padding: 6px 14px; font-size: 0.8rem; display: flex; align-items: center; gap: 6px;">
+          <i class="fa-solid fa-copy"></i> 복사하고 제미나이로 이동
+        </button>
+      </div>
+
+      <!-- 답변 입력 텍스트 영역 -->
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <label for="web-bridge-response-textarea" style="font-weight: 700; font-size: 0.8rem; color: var(--primary);">📥 제미나이 답변 붙여넣기</label>
+        <textarea id="web-bridge-response-textarea" placeholder="제미나이가 출력한 답변 전체를 여기에 복사해서 붙여넣어 주세요..." style="width: 100%; height: 140px; border: 1px solid var(--border-glass); border-radius: var(--radius-sm); background: var(--bg-panel); color: var(--text-primary); font-family: inherit; font-size: 0.85rem; padding: 10px; resize: none; outline: none; box-sizing: border-box;"></textarea>
+      </div>
+
+      <div style="display: flex; gap: 12px; justify-content: flex-end; border-top: 1px solid var(--border-glass); padding-top: 16px;">
+        <button class="btn btn-secondary" id="btn-web-bridge-cancel" onclick="App.closeWebBridgeModal()" style="padding: 8px 16px;">취소</button>
+        <button class="btn btn-primary" id="btn-web-bridge-submit" onclick="App.submitWebBridge()" style="padding: 8px 16px;">🔍 분석 및 적용하기</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- API 미등록 시 선택 모달 -->
+  <div id="api-fallback-modal-root" style="display:none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 2200; justify-content: center; align-items: center;">
+    <div class="meta-modal-backdrop" onclick="App.closeApiFallbackModal()" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(12px);"></div>
+    <div class="meta-modal-container" style="position: relative; z-index: 2201; background: var(--bg-surface); border: 1.5px solid var(--primary); border-radius: var(--radius-lg); padding: 28px; max-width: 480px; width: 90%; box-shadow: var(--shadow-glow); color: var(--text-primary); display: flex; flex-direction: column; gap: 16px;">
+      
+      <div class="meta-modal-title" style="font-size: 1.25rem; font-weight: 800; display: flex; align-items: center; gap: 8px; color: var(--primary); border-bottom: 1px solid var(--border-glass); padding-bottom: 12px; margin-bottom: 4px;">
+        ⚠️ AI API 키가 입력되어 있지 않습니다
+      </div>
+      
+      <div style="font-size: 0.85rem; line-height: 1.5; color: var(--text-secondary);">
+        현재 실시간 AI 추천 기능을 사용하기 위한 API 키가 설정되어 있지 않습니다. 아래 두 가지 모드 중 하나를 선택하여 진행해 주세요.
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 4px;">
+        <button class="btn" onclick="App.selectApiFallback('simulated')" style="display: flex; flex-direction: column; align-items: flex-start; text-align: left; padding: 14px; width: 100%; border: 1px solid var(--border-glass); background: rgba(255, 255, 255, 0.02); transition: var(--transition); cursor: pointer; border-radius: var(--radius-sm);">
+          <strong style="font-size: 0.9rem; color: var(--primary); margin-bottom: 4px;">🤖 오프라인 모의 (Simulated) AI 모드</strong>
+          <span style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;">실제 AI 서버와 통신하지 않고, 교과 성취기준에 맞춘 예시 추천 결과를 즉시 화면에 구성해 줍니다.</span>
+        </button>
+
+        <button class="btn" onclick="App.selectApiFallback('bridge')" style="display: flex; flex-direction: column; align-items: flex-start; text-align: left; padding: 14px; width: 100%; border: 1px solid var(--primary); background: rgba(30, 110, 122, 0.1); transition: var(--transition); cursor: pointer; border-radius: var(--radius-sm);">
+          <strong style="font-size: 0.9rem; color: var(--accent); margin-bottom: 4px;">🔗 구글 Gemini 웹 브릿지 모드 (무료)</strong>
+          <span style="font-size: 0.75rem; color: var(--text-secondary); line-height: 1.4;">개인 구글 제미나이 웹사이트(gemini.google.com)와 수동 복사/붙여넣기를 통해 실시간 AI 분석 결과를 연동합니다.</span>
+        </button>
+      </div>
+
+      <div style="display: flex; gap: 12px; justify-content: flex-end; border-top: 1px solid var(--border-glass); padding-top: 16px; margin-top: 4px;">
+        <button class="btn btn-secondary" onclick="App.closeApiFallbackModal()" style="padding: 8px 16px;">취소</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 비즈니스 로직 스크립트 연결 -->
+  <script src="curriculum-db.js"></script>
+  <script src="rag-engine.js"></script>
+  <script src="data.js"></script>
+  <script src="mock-ai.js"></script>
+  <script src="pdf-export.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
