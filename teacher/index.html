@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>교사용 매핑·세특 보조 시스템 (Antigravity Teacher Helper)</title>
+  <title>교사용 매핑·세특 보조 시스템</title>
   <link rel="stylesheet" href="style.css">
   <!-- Firebase SDK Compat -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -14,8 +14,7 @@
   <!-- 상단 헤더 -->
   <header class="app-header">
     <div class="brand-title">
-      <span>📐 Antigravity</span>
-      <span class="brand-badge">교사용 매핑·세특 보조 시스템</span>
+      <span>📐 교사용 매핑·세특 보조 시스템</span>
     </div>
     <nav class="nav-tabs">
       <button id="nav-dashboard" class="nav-tab active" onclick="App.navigate('dashboard')">📋 반별 대시보드</button>
@@ -25,7 +24,8 @@
     <div style="display:flex; gap:10px; align-items:center;">
       <button class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem;" onclick="document.documentElement.setAttribute('data-theme', document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark')">🌗 테마 전환</button>
       <button class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem; border-color:var(--primary); background:rgba(0,180,216,0.06); color:var(--primary);" onclick="App.triggerJsonImport()">📥 학생 JSON 업로드</button>
-      <button id="btn-copy-sync-link" class="btn btn-primary" style="padding:6px 12px; font-size:0.8rem; background:#10b981; border-color:#10b981; color:#ffffff; display:none;" onclick="App.copyStudentSyncLink()">🔗 학생용 공유 링크 복사</button>
+      <button id="btn-copy-sync-link-adv" class="btn btn-primary" style="padding:6px 12px; font-size:0.8rem; background:#10b981; border-color:#10b981; color:#ffffff; display:none;" onclick="App.copyStudentSyncLink('advanced')">🔗 심화형 공유 링크 복사</button>
+      <button id="btn-copy-sync-link-basic" class="btn btn-primary" style="padding:6px 12px; font-size:0.8rem; background:#059669; border-color:#059669; color:#ffffff; display:none;" onclick="App.copyStudentSyncLink('basic')">🔗 기본형 공유 링크 복사</button>
       <button class="btn btn-primary" style="padding:6px 12px; font-size:0.8rem;" onclick="App.exportToNEIS()">📥 NEIS 일괄 Export (CSV)</button>
       <input type="file" id="student-json-file-input" style="display:none;" accept=".json" onchange="App.handleJsonImport(event)">
     </div>

@@ -28,8 +28,10 @@ const App = {
     // 2. Firebase 실시간 클라우드 DB 연동 리스너 활성화
     if (this.isCloudEnabled && this.db) {
       // 대시보드 상단 공유 링크 복사 버튼 노출 처리
-      const linkBtn = document.getElementById("btn-copy-sync-link");
-      if (linkBtn) linkBtn.style.display = "inline-flex";
+      const linkBtnAdv = document.getElementById("btn-copy-sync-link-adv");
+      const linkBtnBasic = document.getElementById("btn-copy-sync-link-basic");
+      if (linkBtnAdv) linkBtnAdv.style.display = "inline-flex";
+      if (linkBtnBasic) linkBtnBasic.style.display = "inline-flex";
 
       this.db.ref("users").on("value", (snapshot) => {
         const usersData = snapshot.val();
@@ -1110,7 +1112,7 @@ const App = {
     }
   },
 
-  copyStudentSyncLink: function () {
+  copyStudentSyncLink: function (type = 'advanced') {
     const dbUrl = localStorage.getItem("firebase_db_url");
     const apiKey = localStorage.getItem("firebase_api_key");
     const projectId = localStorage.getItem("firebase_project_id");
@@ -1129,22 +1131,31 @@ const App = {
     try {
       const encoded = btoa(JSON.stringify(configObj));
       
-      // 학생용 URL 추정 (/teacher/를 상위 경로로 환산)
-      let studentBaseUrl = window.location.origin + window.location.pathname
-        .replace("/teacher/index.html", "/index.html")
-        .replace("/teacher/", "/");
+      // 학생용 URL 추정
+      let studentBaseUrl = window.location.origin + window.location.pathname;
+      
+      if (type === 'basic') {
+        studentBaseUrl = studentBaseUrl
+          .replace("/teacher/index.html", "/basic/index.html")
+          .replace("/teacher/", "/basic/");
+      } else {
+        studentBaseUrl = studentBaseUrl
+          .replace("/teacher/index.html", "/index.html")
+          .replace("/teacher/", "/");
+      }
       
       if (!studentBaseUrl.endsWith(".html") && !studentBaseUrl.endsWith("/")) {
         studentBaseUrl += "/";
       }
       
       const fullLink = `${studentBaseUrl}?sync=${encoded}`;
+      const typeLabel = type === 'basic' ? "기본형" : "심화형";
       
       navigator.clipboard.writeText(fullLink).then(() => {
-        alert("🔗 학생용 동기화 공유 링크가 클립보드에 복사되었습니다!\n\n학생들에게 이 링크를 전달하여 열게 하면, 추가 설정 없이 실시간 클라우드 공유가 자동 작동합니다.");
+        alert(`🔗 학생용 동기화 공유 링크(${typeLabel})가 클립보드에 복사되었습니다!\n\n학생들에게 이 링크를 전달하여 열게 하면, 추가 설정 없이 실시간 클라우드 공유가 자동 작동합니다.`);
       }).catch(err => {
         console.error("클립보드 복사 실패:", err);
-        prompt("클립보드 자동 복사에 실패했습니다. 아래 주소를 직접 복사해 사용하세요:", fullLink);
+        prompt(`클립보드 자동 복사에 실패했습니다. 아래 주소를 직접 복사해 사용하세요:`, fullLink);
       });
     } catch (err) {
       console.error("공유 링크 생성 중 에러:", err);
@@ -1201,9 +1212,13 @@ const App = {
       this.initFirebase();
 
       // 공유 링크 복사 버튼 노출 여부
-      const linkBtn = document.getElementById("btn-copy-sync-link");
-      if (linkBtn) {
-        linkBtn.style.display = this.isCloudEnabled ? "inline-flex" : "none";
+      const linkBtnAdv = document.getElementById("btn-copy-sync-link-adv");
+      const linkBtnBasic = document.getElementById("btn-copy-sync-link-basic");
+      if (linkBtnAdv) {
+        linkBtnAdv.style.display = this.isCloudEnabled ? "inline-flex" : "none";
+      }
+      if (linkBtnBasic) {
+        linkBtnBasic.style.display = this.isCloudEnabled ? "inline-flex" : "none";
       }
     }
     
@@ -1272,7 +1287,7 @@ const App = {
         
         // 8단계 기본 데이터 스키마 유무 검증
         if (!report.step_1 || !report.step_2 || !report.step_3 || !report.step_4) {
-          alert("유효한 Antigravity 8단계 탐구보고서 JSON 데이터가 아닙니다. 파일을 다시 확인해 주세요.");
+          alert("유효한 8단계 탐구보고서 JSON 데이터가 아닙니다. 파일을 다시 확인해 주세요.");
           event.target.value = "";
           return;
         }
