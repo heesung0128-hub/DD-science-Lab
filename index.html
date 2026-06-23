@@ -474,8 +474,13 @@
               <label for="input-step6-collect">1. 자료 수집 내역</label>
               <button class="btn-ai-suggest-inline" onclick="App.openAiSuggestInline(6, '자료_수집', 'input-step6-collect')">✨ AI 추천 후보</button>
             </div>
-            <div class="field-helper-tip" style="margin-bottom: 6px;">
-              <span class="prefill-badge">5단계 계획 연계 prefill</span> 아래는 5단계 방법 설계를 바탕으로 수행을 시작하기 위해 prefill된 시제 전환 결과물입니다. 자유롭게 수정해 보세요.
+            <div class="field-helper-tip" style="margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+              <div>
+                <span class="prefill-badge">5단계 계획 연계 prefill</span> 아래는 5단계 방법 설계를 바탕으로 수행을 시작하기 위해 prefill된 시제 전환 결과물입니다. 자유롭게 수정해 보세요.
+              </div>
+              <button class="btn" onclick="App.forcePrefillStep6()" style="padding: 2px 6px; font-size: 0.65rem; margin: 0; display: inline-flex; align-items: center; gap: 4px; border-color: var(--accent); color: var(--accent); background: transparent; cursor: pointer; border-radius: 4px; font-weight: 600;">
+                🔄 계획에서 가져오기
+              </button>
             </div>
             <textarea id="input-step6-collect" class="prefilled-field" oninput="App.handleGenericInput(6)"></textarea>
           </div>

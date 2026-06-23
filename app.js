@@ -1486,6 +1486,11 @@ const App = {
           document.getElementById("input-step7-limits").value = r.step_7.한계_후속 || "";
 
     this.renderAddedReferences();
+
+    // 6단계 진입 상태이거나 데이터가 비어있을 때 자동 prefill 기동 검사
+    if (r.metadata.current_step === 6) {
+      this.prefillStep6Values();
+    }
   },
 
   /**
@@ -1852,8 +1857,8 @@ const App = {
             localStorage.setItem("antigravity_users_db", JSON.stringify(usersDb));
             
             // 데이터 갱신 및 내비게이션 초기화
-            this.step = 1;
-            this.updateViews();
+            this.restoreFormValues();
+            this.navigateToStep(1);
             this.renderInquiryList();
             alert(`📂 탐구 과제가 [${this.report.step_1?.교과목?.과목명 || "과목미정"}] 과목으로 변경되었습니다.`);
           }
@@ -1885,8 +1890,8 @@ const App = {
           localStorage.setItem("antigravity_users_db", JSON.stringify(usersDb));
 
           // 1단계로 리다이렉트
-          this.step = 1;
-          this.updateViews();
+          this.restoreFormValues();
+          this.navigateToStep(1);
           this.renderInquiryList();
           alert("➕ 새로운 주제탐구 과제가 생성되었습니다! 1단계에서 탐구할 과목을 세팅해 주세요.");
         }
@@ -1928,8 +1933,8 @@ const App = {
           localStorage.setItem("antigravity_users_db", JSON.stringify(usersDb));
           
           // 화면 및 드롭다운 강제 리프레시
-          this.step = 1;
-          this.updateViews();
+          this.restoreFormValues();
+          this.navigateToStep(1);
           this.renderInquiryList();
           alert("🗑️ 탐구 과제가 정상적으로 삭제되었습니다.");
         }
@@ -2612,6 +2617,10 @@ const App = {
     if (!collectInput) return;
     
     if (this.report.step_6.자료_수집 && this.report.step_6.자료_수집.trim().length > 0) {
+      // 만약 input 엘리먼트가 비어있다면 동기화해 줌
+      if (collectInput.value !== this.report.step_6.자료_수집) {
+        collectInput.value = this.report.step_6.자료_수집;
+      }
       return;
     }
     
@@ -2625,6 +2634,29 @@ const App = {
     const converted = this.convertProcedureToPastTense(procedure);
     this.report.step_6.자료_수집 = converted;
     collectInput.value = converted;
+  },
+
+  forcePrefillStep6: function () {
+    const procedure = this.report.step_5.절차_방법 || "";
+    if (!procedure.trim()) {
+      alert("5단계 탐구 절차 및 방법이 입력되지 않았습니다. 5단계 절차를 먼저 작성해 주세요.");
+      return;
+    }
+    
+    const collectInput = document.getElementById("input-step6-collect");
+    if (collectInput && collectInput.value.trim().length > 0) {
+      if (!confirm("이미 입력된 자료 수집 내역이 있습니다. 5단계 절차를 과거형 시제로 변환하여 덮어쓰시겠습니까?")) {
+        return;
+      }
+    }
+    
+    const converted = this.convertProcedureToPastTense(procedure);
+    this.report.step_6.자료_수집 = converted;
+    if (collectInput) {
+      collectInput.value = converted;
+    }
+    this.saveToLocalStorage();
+    alert("✅ 5단계 절차가 성공적으로 과거형 시제로 변환되어 반영되었습니다.");
   },
 
   convertProcedureToPastTense: function (text) {

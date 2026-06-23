@@ -1237,9 +1237,6 @@ textarea {
   filter: brightness(1.1);
 }
 
-/* ==========================================================================
-   11. A4 규격 출력 미리보기 페이지 스타일 (학술 양식)
-   ========================================================================== */
 .pdf-preview-body {
   background: white;
   color: #111111;
@@ -1247,12 +1244,24 @@ textarea {
   box-shadow: 0 10px 40px rgba(0,0,0,0.5);
   font-family: 'Pretendard', sans-serif;
 }
+
+/* ==========================================================================
+   11. A4 규격 출력 미리보기 페이지 스타일 (학술 양식)
+   ========================================================================== */
 .academic-page {
   background: white;
-  min-height: 297mm; /* A4 높이 비율 */
-  padding: 20mm 15mm;
+  min-height: auto;
+  padding: 12mm 15mm;
   box-sizing: border-box;
   position: relative;
+  border-bottom: 2px dashed rgba(0, 0, 0, 0.08);
+  margin-bottom: 20px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+.academic-page:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
 }
 .cover-page {
   display: flex;
@@ -1260,6 +1269,8 @@ textarea {
   align-items: center;
   justify-content: center;
   text-align: center;
+  min-height: 180mm;
+  padding: 20mm 15mm;
 }
 .academic-badge {
   border: 2px solid #111;
@@ -1267,28 +1278,28 @@ textarea {
   font-weight: 700;
   font-size: 0.9rem;
   letter-spacing: 2px;
-  margin-bottom: 40px;
+  margin-bottom: 25px;
   text-transform: uppercase;
 }
 .academic-title {
   font-size: 2.2rem;
   font-weight: 800;
   line-height: 1.3;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
   color: #000;
   word-break: keep-all;
 }
 .academic-sub-title {
   font-size: 1.1rem;
   color: #444;
-  margin-bottom: 80px;
+  margin-bottom: 40px;
 }
 .cover-meta-table {
   width: 80%;
-  margin-bottom: 100px;
+  margin-bottom: 50px;
   border-top: 2px solid #111;
   border-bottom: 2px solid #111;
-  padding: 20px 0;
+  padding: 15px 0;
 }
 .meta-row {
   display: grid;
@@ -1312,11 +1323,11 @@ textarea {
   font-size: 0.8rem;
   color: #666;
 }
-
+ 
 .academic-section-title {
   border-bottom: 2px solid #111;
   padding-bottom: 8px;
-  margin-top: 40px;
+  margin-top: 15px;
   margin-bottom: 20px;
   font-size: 1.35rem;
   font-weight: 800;
@@ -1448,6 +1459,10 @@ textarea {
     min-height: auto;
     padding: 15mm 10mm;
     page-break-after: always;
+    border-bottom: none !important;
+    margin-bottom: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
   }
   
   .page-break-before {
