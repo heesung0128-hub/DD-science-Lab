@@ -70,21 +70,26 @@
       <!-- 1단계 -->
       <a class="progress-step-item active" onclick="App.navigateToStep(1)">
         <div class="step-number-circle">1</div>
-        <div class="step-label-text">기본 정보 & 주제</div>
+        <div class="step-label-text">기본 정보 설정</div>
       </a>
       <!-- 2단계 -->
       <a class="progress-step-item" onclick="App.navigateToStep(2)">
         <div class="step-number-circle">2</div>
-        <div class="step-label-text">탐구 방법 설계</div>
+        <div class="step-label-text">탐구 주제 탐색</div>
       </a>
       <!-- 3단계 -->
       <a class="progress-step-item" onclick="App.navigateToStep(3)">
         <div class="step-number-circle">3</div>
-        <div class="step-label-text">수행 & 결과 관찰</div>
+        <div class="step-label-text">탐구 방법 설계</div>
       </a>
       <!-- 4단계 -->
       <a class="progress-step-item" onclick="App.navigateToStep(4)">
         <div class="step-number-circle">4</div>
+        <div class="step-label-text">수행 & 결과 관찰</div>
+      </a>
+      <!-- 5단계 -->
+      <a class="progress-step-item" onclick="App.navigateToStep(5)">
+        <div class="step-number-circle">5</div>
         <div class="step-label-text">최종 결론</div>
       </a>
     </div>
@@ -101,7 +106,7 @@
            ---------------------------------------------------- -->
       <div id="step-wrapper-1" class="form-step-wrapper active">
         <div class="step-title-header">
-          <h2>1. 기본 정보 설정 & 탐구 주제 탐색</h2>
+          <h2>1. 기본 정보 설정</h2>
           <p>학생 인적 사항과 관심 교과를 선택하고, AI의 제안을 활용해 흥미로운 주제를 결정합니다.</p>
         </div>
 
@@ -205,21 +210,37 @@
           </div>
         </div>
 
+      </div> <!-- Close step-wrapper-1 -->
+
+      <!-- ----------------------------------------------------
+           2단계: 탐구 주제 탐색
+           ---------------------------------------------------- -->
+      <div id="step-wrapper-2" class="form-step-wrapper">
+        <div class="step-title-header">
+          <h2>2. 탐구 주제 및 키워드 탐색</h2>
+          <p>흥미 키워드를 입력하고 AI 주제 제안을 바탕으로 나만의 주제와 탐구 유형을 확정합니다.</p>
+        </div>
+
         <div class="form-group-section">
           <div class="form-group-section-title">관심 키워드 등록 및 탐구 유형</div>
           <div class="field-container">
-            <label>태그 등록 (최대 5개)</label>
-            <div class="keyword-tag-input-container" id="keyword-tag-container">
-              <input type="text" id="input-keyword-tag" placeholder="엔터 또는 쉼표(,)로 키워드를 입력하세요" onkeydown="App.handleKeywordKeydown(event)">
+            <div class="field-label-group">
+              <label>흥미 키워드 (최대 5개)</label>
+              <button class="btn-ai-suggest-inline" onclick="App.showRecommendedKeywords()" style="font-size: 0.7rem; padding: 2px 6px;">🪄 내 진로 맞춤 키워드 추천</button>
             </div>
-            <button class="btn btn-secondary" onclick="App.showRecommendedKeywords()" style="margin-top: 10px; font-size: 0.75rem; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px;">
-              🪄 계열 맞춤형 추천 키워드 보기
-            </button>
-            <div class="recommended-keywords-wrapper" id="recommended-keywords-box" style="display:none;"></div>
+            <div class="keyword-tag-container" id="keyword-tag-container">
+              <input type="text" id="input-keyword-tag" class="keyword-tag-input" placeholder="엔터 또는 쉼표로 키워드 추가" onkeydown="App.handleKeywordKeydown(event)">
+            </div>
+            <div id="recommended-keywords-box" style="display:none; flex-wrap:wrap; gap:8px; padding:10px; background:rgba(255,255,255,0.02); border:1px dashed var(--border-glass); border-radius:var(--radius-sm); margin-top:8px;">
+              <!-- 추천 키워드 동적 생성 -->
+            </div>
+            <p class="field-helper-tip">탐구의 핵심이 될 과학 법칙, 용어 등을 입력하세요. 직접 입력하기 어렵다면 위의 진로 맞춤 키워드를 클릭해 보세요.</p>
           </div>
 
           <div class="field-container">
-            <label>탐구 유형 선택</label>
+            <div class="field-label-group">
+              <label>탐구 유형 선택 (핵심 분기 결정)</label>
+            </div>
             <div class="exploration-types-grid" id="exploration-types-grid">
               <!-- JS 동적 생성 -->
             </div>
@@ -261,9 +282,9 @@
       <!-- ----------------------------------------------------
            2단계: 탐구 방법 설계
            ---------------------------------------------------- -->
-      <div id="step-wrapper-2" class="form-step-wrapper">
+      <div id="step-wrapper-3" class="form-step-wrapper">
         <div class="step-title-header">
-          <h2>2. 탐구 방법 및 설계 절차</h2>
+          <h2>3. 탐구 방법 및 설계 절차</h2>
           <p>탐구 계획을 명확하고 구체적인 실행 단계로 설계합니다.</p>
         </div>
 
@@ -297,9 +318,9 @@
       <!-- ----------------------------------------------------
            3단계: 수행 & 결과 관찰
            ---------------------------------------------------- -->
-      <div id="step-wrapper-3" class="form-step-wrapper">
+      <div id="step-wrapper-4" class="form-step-wrapper">
         <div class="step-title-header">
-          <h2>3. 탐구 수행 및 데이터 관찰</h2>
+          <h2>4. 탐구 수행 및 데이터 관찰</h2>
           <p>설계한 절차에 따라 실제 탐구를 수행하고 수집된 자료나 핵심 실측치를 기록합니다.</p>
         </div>
 
@@ -341,9 +362,9 @@
       <!-- ----------------------------------------------------
            4단계: 최종 결론
            ---------------------------------------------------- -->
-      <div id="step-wrapper-4" class="form-step-wrapper">
+      <div id="step-wrapper-5" class="form-step-wrapper">
         <div class="step-title-header">
-          <h2>4. 최종 결론 및 정리</h2>
+          <h2>5. 최종 결론 및 정리</h2>
           <p>모인 자료를 바탕으로 탐구에 대한 최종 결론을 내리고, 아쉬운 점과 향후 알아보고 싶은 점을 정리합니다.</p>
         </div>
 

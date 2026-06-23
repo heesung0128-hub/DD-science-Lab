@@ -272,7 +272,7 @@ const AIEngine = {
       let reasoning = "";
       let dimensions = ["지식·이해"];
 
-      if (el.id === "sci-physics-momentum-01-v2022") {
+      if (el.id === "sci-physics-momentum-01-v2022" && reportText.includes("마찰이 통제된 일차원 에어트랙")) {
         citations = [
           {
             step: 3,
@@ -287,7 +287,7 @@ const AIEngine = {
         ];
         dimensions.push("과정·기능");
         reasoning = "에어트랙의 준-무마찰 상태에서 수레 충돌 전후 속도를 포토게이트로 관찰하고 정량적으로 계산하여 운동량 보존 공식을 검증함.";
-      } else if (el.id === "sci-chemistry-rate-01-v2022") {
+      } else if (el.id === "sci-chemistry-rate-01-v2022" && reportText.includes("과산화수소(H2O2) 용액에 무기 촉매")) {
         citations = [
           {
             step: 3,
@@ -302,7 +302,7 @@ const AIEngine = {
         ];
         dimensions.push("과정·기능");
         reasoning = "과산화수소의 촉매 분해 조건(온도, 촉매 유형)에 따른 기체 발생률을 측정하고 반응 속도 상수를 정밀 연산함.";
-      } else if (el.id === "math-algebra-log-01-v2022") {
+      } else if (el.id === "math-algebra-log-01-v2022" && reportText.includes("소음 데시벨(dB) 데이터를 수집하고")) {
         citations = [
           {
             step: 3,
@@ -319,19 +319,8 @@ const AIEngine = {
         reasoning = "거리 증가에 따른 음압 감소 폭을 실측하여 상용로그를 바탕으로 하는 소음 데시벨 스케일과 구면파 감쇠 모델을 대조 검증함.";
       } else {
         // 기본 텍스트 추출 매칭
-        const words = (report.step_5?.절차_방법 || "실험 절차").split("\n");
-        citations = [
-          {
-            step: 3,
-            text: report.step_3?.목적 || "과목의 학습 성과를 분석함.",
-            field: "목적"
-          },
-          {
-            step: 5,
-            text: words[0] || "데이터 분석 설계.",
-            field: "절차_방법"
-          }
-        ];
+        citations = this.extractDynamicCitations(report, el);
+        dimensions.push("과정·기능");
         reasoning = `교과 성취기준에 명시된 ${el.내용요소} 개념과 학생이 수집한 로우 데이터 간의 교차적 인과 분석 및 탐구 절차 매칭을 확인함.`;
       }
 
@@ -349,6 +338,76 @@ const AIEngine = {
   /**
    * 로컬 모의 세특 문장 초안 3대 대안 템플릿 생성기
    */
+  extractDynamicCitations: function (report, element) {
+    const citations = [];
+    const possibleFields = [
+      { step: 2, field: "동기", text: report.step_2?.동기 },
+      { step: 2, field: "선택_주제", text: report.step_2?.선택_주제 },
+      { step: 3, field: "동기", text: report.step_3?.동기 },
+      { step: 3, field: "목적", text: report.step_3?.목적 },
+      { step: 3, field: "핵심질문", text: report.step_3?.핵심질문 },
+      { step: 4, field: "가설", text: report.step_4?.가설 },
+      { step: 4, field: "근거", text: report.step_4?.근거 },
+      { step: 5, field: "절차_방법", text: report.step_5?.절차_방법 },
+      { step: 5, field: "도구_자료", text: report.step_5?.도구_자료 },
+      { step: 5, field: "신뢰성_타당성", text: report.step_5?.신뢰성_타당성 },
+      { step: 6, field: "자료_수집", text: report.step_6?.자료_수집 },
+      { step: 6, field: "자료_처리_분석", text: report.step_6?.자료_처리_분석 },
+      { step: 6, field: "핵심_수치_관찰", text: report.step_6?.핵심_수치_관찰 },
+      { step: 7, field: "사실_정리", text: report.step_7?.사실_정리 },
+      { step: 7, field: "최종_결론", text: report.step_7?.가설_검증?.최종_결론 },
+      { step: 7, field: "한계_후속", text: report.step_7?.한계_후속 }
+    ];
+
+    // Filter fields that are actually present and have reasonable length
+    const validFields = possibleFields.filter(f => f.text && String(f.text).trim().length > 5);
+
+    if (validFields.length >= 2) {
+      for (let i = 0; i < Math.min(3, validFields.length); i++) {
+        const vf = validFields[i];
+        const textVal = String(vf.text).trim();
+        const sentences = textVal.split(/[.?!]\s+/);
+        let citationText = (sentences[0] || textVal).trim();
+        if (citationText.length > 5) {
+          citations.push({
+            step: vf.step,
+            text: citationText,
+            field: vf.field
+          });
+        }
+      }
+    } else if (validFields.length === 1) {
+      const vf = validFields[0];
+      const textVal = String(vf.text).trim();
+      const sentences = textVal.split(/[.?!]\s+/);
+      sentences.forEach(s => {
+        const cleanS = s.trim();
+        if (cleanS.length > 5 && citations.length < 2) {
+          citations.push({
+            step: vf.step,
+            text: cleanS,
+            field: vf.field
+          });
+        }
+      });
+    }
+
+    if (citations.length < 2) {
+      citations.push({
+        step: 2,
+        text: report.step_2?.선택_주제 || "자유 탐구",
+        field: "선택_주제"
+      });
+      citations.push({
+        step: 1,
+        text: report.step_1?.교과목?.과목명 || "통합과학",
+        field: "과목명"
+      });
+    }
+
+    return citations.slice(0, 2);
+  },
+
   simulateSetuk: function (report, mapping) {
     const element = CURRICULUM_DB.find(c => c.id === mapping.content_element_id);
     const name = report.student_name || "이학생";

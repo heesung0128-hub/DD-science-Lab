@@ -33,6 +33,7 @@ const RAGEngine = {
 
     // 2. 보고서 핵심 분석 텍스트 결합 (3, 4, 5, 7단계 - 핵심 탐구 내용)
     const reportText = [
+      report.step_2?.동기 || "",
       report.step_3?.동기 || "",
       report.step_3?.목적 || "",
       report.step_3?.핵심질문 || "",

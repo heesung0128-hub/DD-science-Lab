@@ -745,13 +745,13 @@ const App = {
     this.updateMentorAdvice();
     this.updateGuideArea();
 
-    if (stepNum === 1 && this.report.step_2.키워드.length === 0) {
+    if (stepNum === 2 && this.report.step_2.키워드.length === 0) {
       this.showRecommendedKeywords();
       this.checkTopicCurriculumAlignment();
     }
 
-    // 3단계(수수행) 진입 시 prefill 가동
-    if (stepNum === 3) {
+    // 4단계(수행) 진입 시 prefill 가동
+    if (stepNum === 4) {
       this.prefillStep6Values();
     }
 
@@ -760,7 +760,7 @@ const App = {
 
   navigateNext: function () {
     const current = this.report.metadata.current_step;
-    if (current < 4) {
+    if (current < 5) {
       this.navigateToStep(current + 1);
     }
   },
@@ -775,7 +775,7 @@ const App = {
   updateProgress: function () {
     const current = this.report.metadata.current_step;
     const progressFill = document.getElementById("progress-line-fill");
-    const percentage = ((current - 1) / 3) * 100;
+    const percentage = ((current - 1) / 4) * 100;
     progressFill.style.width = `${percentage}%`;
   },
 
@@ -790,7 +790,7 @@ const App = {
       prevBtn.className = "btn btn-secondary";
     }
 
-    if (current === 4) {
+    if (current === 5) {
       nextBtn.style.display = "none";
     } else {
       nextBtn.style.display = "inline-flex";
@@ -855,8 +855,8 @@ const App = {
     }
     document.getElementById("input-step7-limits").value = r.step_7.한계_후속 || "";
 
-    // 3단계 진입 상태일 때 자동 prefill 가동 검사
-    if (r.metadata.current_step === 3) {
+    // 4단계 진입 상태일 때 자동 prefill 가동 검사
+    if (r.metadata.current_step === 4) {
       this.prefillStep6Values();
     }
   },
@@ -910,20 +910,25 @@ const App = {
     const advices = {
       1: {
         avatar: "👨‍🏫",
-        html: `<p>반갑습니다! 탐구의 시작점인 <strong>학년/교과 설정 및 주제 검색</strong> 단계입니다.</p>
-               <p>희망 전공과 진로에 부합하는 과목을 고르고 관심 키워드를 입력해 보세요. <strong>[AI 주제 추천 받기]</strong>를 누르면 성취기준에 맞춤화된 훌륭한 탐구 제안을 제공해 드립니다.</p>`
+        html: `<p>반갑습니다! 탐구의 시작점인 <strong>기본 정보 설정</strong> 단계입니다.</p>
+               <p>본인의 학적과 관심 진로에 맞는 탐구 연계 과목을 확인하고 설정해 주세요.</p>`
       },
       2: {
+        avatar: "🔮",
+        html: `<p>나만의 멋진 **탐구 주제를 탐색하고 확정**할 시간입니다.</p>
+               <p>희망 진로와 관련된 관심 키워드를 입력해 보세요. <strong>[AI 주제 추천 받기]</strong>를 누르면 교육과정에 맞춤화된 훌륭한 탐구 제안을 제공해 드립니다.</p>`
+      },
+      3: {
         avatar: "📐",
         html: `<p>확정한 주제를 어떻게 증명할지 **구체적인 실행 계획**을 세울 시간입니다.</p>
                <p>실험 방법이나 조사 방법을 1, 2, 3 단계별로 나누어 적어보세요. 오차를 방지하고 더 신뢰성 높은 데이터를 모으기 위한 안전 장치를 함께 설계하면 아주 우수한 보고서가 됩니다.</p>`
       },
-      3: {
+      4: {
         avatar: "📈",
         html: `<p>설계했던 계획이 드디어 **수행 내역**으로 연결되는 핵심 단계입니다!</p>
-               <p>2단계 계획의 문장을 AI가 과거형의 **수행 완료 내역**으로 자동 변환해 두었습니다(Prefill). 실제 실행 과정에서 관찰된 핵심적인 수치와 특이 반응들을 상세하게 적어 주시면 신뢰도가 급증합니다.</p>`
+               <p>3단계 계획의 문장을 AI가 과거형의 **수행 완료 내역**으로 자동 변환해 두었습니다(Prefill). 실제 실행 과정에서 관찰된 핵심적인 수치와 특이 반응들을 상세하게 적어 주시면 신뢰도가 급증합니다.</p>`
       },
-      4: {
+      5: {
         avatar: "🏁",
         html: `<p>탐구의 여정을 멋지게 끝맺는 **종합 결론** 도출 단계입니다.</p>
                <p>모은 관찰 데이터로부터 밝혀낸 사실을 가다듬고, 최종 결론 한 문장을 학생 스스로 정성스레 작성해 주세요. 탐구 중 한계점과 후속 질문을 적으며 한 층 더 성장해 보세요!</p>`
@@ -961,18 +966,22 @@ const App = {
     // 4단계 도움말 예시 구성
     const guides = {
       1: {
-        help: "계열별로 학과와 진로명이 조화를 이루면 학생의 탐구 개성이 돋보입니다. 관심 키워드는 3~4개의 명사로 입력해 보며, AI 추천 카드를 클릭하면 하단 최종 주제에 바로 세팅됩니다.",
-        example: "희망 진로: 로봇 공학자 / 과목: 물리학Ⅰ\n키워드: #충돌, #에너지보존, #MBL센서\n최종주제: MBL 스마트 트랙을 이용한 두 물체의 평면 충돌 시 탄성 에너지 변화 분석"
+        help: "계열별로 학과와 진로명이 조화를 이루면 학생의 탐구 개성이 돋보입니다. 관심 과목을 정확히 정해야 관련 성취기준을 불러옵니다.",
+        example: "희망 진로: 로봇 공학자 / 과목: 물리학Ⅰ\n계열: 공학 계열"
       },
       2: {
+        help: "관심 키워드는 3~4개의 명사로 입력해 보며, AI 추천 카드를 클릭하면 하단 최종 주제에 바로 세팅됩니다. 유형 선택은 필수 단계입니다.",
+        example: "키워드: #충돌, #에너지보존, #MBL센서\n최종주제: MBL 스마트 트랙을 이용한 두 물체의 평면 충돌 시 탄성 에너지 변화 분석"
+      },
+      3: {
         help: "실행할 행동 절차를 시간 순서대로 1, 2, 3 번호를 매겨 상세히 나열합니다. 측정할 주요 수치(예: 온도, 기압 등)와 도구의 규격을 구체적으로 표기하는 것이 설계의 핵심입니다.",
         example: "방법:\n1. MBL 스마트 카트를 수평 트랙에 고정한다.\n2. 발사 장치로 일정한 속도를 주어 5회 충돌시킨다.\n3. 충격 센서로 압력을 수집한다.\n준비자료: MBL 스마트 카트, 충격 압력 센서, 전용 분석 툴"
       },
-      3: {
+      4: {
         help: "수집한 데이터와 표, 혹은 관찰 수치 결과를 적습니다. 계획을 그대로 옮기기 위해 상단의 [계획에서 가져오기] 버튼을 적극 활용하시고, 변동된 오차나 관찰 수치를 명확히 쓰세요.",
         example: "관찰 결과:\n조작 속도 1.2m/s 충돌 결과, 평균 반발계수는 0.84였으나, 속도가 2.4m/s로 증가했을 때는 0.72로 에너지가 비선형적으로 유실되는 양상을 관찰함."
       },
-      4: {
+      5: {
         help: "수집한 관찰 데이터를 정돈하여 알게 된 탐구 결론을 내립니다. 가설을 세우지 않았더라도, 수치의 증감 관계나 경향성이 뚜렷이 밝혀졌는지 본인만의 문장으로 종합 요약하여 제출합니다.",
         example: "결과 요약: 기체 온도 상승 시 분자 확산율은 지수함수적으로 빨라짐.\n최종 결론: 샤를의 법칙에 의거하여 온도가 기체 운동 속도에 선형적 상승 효과를 유도함을 정량적으로 규명함."
       }
@@ -1781,13 +1790,13 @@ const App = {
   forcePrefillStep6: function () {
     const procedure = this.report.step_5.절차_방법 || "";
     if (!procedure.trim()) {
-      alert("2단계 탐구 절차 및 방법이 입력되지 않았습니다. 2단계 절차를 먼저 작성해 주세요.");
+      alert("3단계 탐구 절차 및 방법이 입력되지 않았습니다. 3단계 절차를 먼저 작성해 주세요.");
       return;
     }
     
     const collectInput = document.getElementById("input-step6-collect");
     if (collectInput && collectInput.value.trim().length > 0) {
-      if (!confirm("이미 입력된 자료 수집 내역이 있습니다. 2단계 계획 절차를 과거형 시제로 변환하여 덮어쓰시겠습니까?")) {
+      if (!confirm("이미 입력된 자료 수집 내역이 있습니다. 3단계 계획 절차를 과거형 시제로 변환하여 덮어쓰시겠습니까?")) {
         return;
       }
     }
@@ -1798,7 +1807,7 @@ const App = {
       collectInput.value = converted;
     }
     this.saveToLocalStorage();
-    alert("✅ 2단계 계획 절차가 과거형 시제로 변환되어 수행 내역에 반영되었습니다.");
+    alert("✅ 3단계 계획 절차가 과거형 시제로 변환되어 수행 내역에 반영되었습니다.");
   },
 
   convertProcedureToPastTense: function (text) {
