@@ -380,11 +380,21 @@ const AIEngine = {
     const cleanProc = cleanText(shortProc);
     const cleanConclusion = cleanText(shortConclusion);
 
-    const short = `학생은 '${topic}' 탐구에서 ${element.내용요소} 원리를 분석하고, ${cleanObs} 사실을 포착하여 결론을 도출함.`;
+    const ensureDot = (txt) => {
+      if (!txt) return "";
+      const trimmed = txt.trim();
+      return trimmed.endsWith('.') ? trimmed : trimmed + '.';
+    };
+
+    const safeObs = ensureDot(cleanObs);
+    const safeProc = ensureDot(cleanProc);
+    const safeConclusion = ensureDot(cleanConclusion);
+
+    const short = `학생은 '${topic}' 탐구에서 ${element.내용요소} 원리를 분석함. 탐구 과정에서 ${safeObs} 이를 토대로 유의미한 결론을 도출함.`;
     
-    const standard = `학생은 ${course} 수업과 연계하여 '${topic}' 탐구를 자율 설계함. ${element.내용요소} 개념을 바탕으로 ${cleanProc} 절차를 충실히 수행하고, ${cleanObs} 결과를 수학·과학적으로 규명하며 학술적 분석 역량을 입증함.`;
+    const standard = `학생은 ${course} 수업과 연계하여 '${topic}' 탐구를 자율 설계함. ${element.내용요소} 개념을 토대로 ${safeProc} 이후 ${safeObs} 이 분석 결과를 바탕으로 결론을 도출하여 우수한 학술적 탐구 능력을 입증함.`;
     
-    const rich = `학생은 평소 관심이 깊던 ${course} 단원의 핵심 이론을 실생활 문제와 결합하여 '${topic}'이라는 주제로 탐구를 수행함. ${element.내용요소}의 이론적 배경을 토대로 ${cleanProc} 측정 단계를 기획하여 데이터를 획득함. 자료 처리 과정에서 ${cleanObs} 사실을 체계적으로 도출하고, 분석 끝에 ${cleanConclusion} 결론을 이끌어내며 성취기준을 완벽히 소화함. 탐구 한계 극복을 위한 후속 탐구 방향까지 스스로 제시하는 메타인지적 탐구 자세가 극히 우수함.`;
+    const rich = `학생은 평소 관심이 깊던 ${course} 단원의 핵심 이론을 실생활 문제와 결합하여 '${topic}'이라는 주제로 탐구를 수행함. ${element.내용요소}의 이론적 배경을 토대로 ${safeProc} 이와 같은 체계적인 설계를 바탕으로 데이터를 획득한 후, 분석을 거쳐 ${safeObs} 탐구 결과를 종합하여 ${safeConclusion} 결론을 도출함. 탐구 한계를 성찰하고 후속 방향까지 스스로 모색하는 등 자기주도적 탐구 태도가 매우 돋보임.`;
 
     return { short, standard, rich };
   },
