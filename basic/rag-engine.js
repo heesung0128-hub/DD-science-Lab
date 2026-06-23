@@ -16,20 +16,23 @@ const RAGEngine = {
     const subjectGroup = report.step_1.교과목?.교과 || "과학";
     const curriculumVersion = report.metadata?.교육과정_버전 || "v2022";
 
-    // 1. 1차 메타데이터 필터링 (교과 계열, 적용 학년, 교육과정 버전)
+    // 1. 1차 메타데이터 필터링 (교과 계열, 과목명 정확도, 적용 학년, 교육과정 버전)
+    const exactSubject = report.step_1.교과목?.과목명;
     const candidates = CURRICULUM_DB.filter(c => {
       // 교과 계열 매핑 (수학/과학)
       const subjectMatch = c.교과 === subjectGroup;
+      // 과목명 정확도 매칭 (대수 vs 수학Ⅰ 분리 등)
+      const subjectNameMatch = exactSubject ? c.과목 === exactSubject : true;
       // 적용 학년 포함 여부
       const gradeMatch = c.학년_적용.includes(grade);
       // 교육과정 버전 일치 여부
       const versionMatch = c.교육과정_버전 === curriculumVersion;
 
-      return subjectMatch && gradeMatch && versionMatch;
+      return subjectMatch && subjectNameMatch && gradeMatch && versionMatch;
     });
 
-    // 만약 필터링된 후보가 없다면, 교과 대분류만 일치하는 전수 후보를 대상으로 탐색
-    const searchPool = candidates.length > 0 ? candidates : CURRICULUM_DB.filter(c => c.교과 === subjectGroup);
+    // 만약 필터링된 후보가 없다면, 교과 대분류 및 과목명이 일치하는 전수 후보를 대상으로 탐색
+    const searchPool = candidates.length > 0 ? candidates : CURRICULUM_DB.filter(c => c.교과 === subjectGroup && (exactSubject ? c.과목 === exactSubject : true));
 
     // 2. 보고서 핵심 분석 텍스트 결합 (3, 4, 5, 7단계 - 핵심 탐구 내용)
     const reportText = [

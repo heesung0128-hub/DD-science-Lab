@@ -346,10 +346,51 @@ const ComplianceEngine = {
       });
     }
 
+    // 7. 금지 기호 및 수학/단위 기호 검증
+    const forbiddenSymbols = [
+      { regex: /:/g, term: ":", type: "금지_기호_포함", suggestion: "제거 또는 공백" },
+      { regex: /=/g, term: "=", type: "금지_기호_포함", suggestion: "한글 설명으로 대체" },
+      { regex: /%/g, term: "%", type: "금지_기호_포함", suggestion: "퍼센트" },
+      { regex: /dB/g, term: "dB", type: "금지_기호_포함", suggestion: "데시벨" },
+      { regex: /℃/g, term: "℃", type: "금지_기호_포함", suggestion: "도" },
+      { regex: /R²/g, term: "R²", type: "금지_기호_포함", suggestion: "결정계수" },
+      { regex: /[²³]/g, term: "제곱 기호", type: "금지_기호_포함", suggestion: "제곱/세제곱" }
+    ];
+
+    forbiddenSymbols.forEach(item => {
+      // Regexp test has state, so we construct a new regex or use string index
+      if (text.match(item.regex)) {
+        issues.push({
+          type: item.type,
+          term: item.term,
+          suggestion: item.suggestion
+        });
+      }
+    });
+
     return {
       passed: issues.length === 0,
       issues: issues
     };
+  },
+
+  /**
+   * 금지 기호 및 특수 단위 한글 정화 치환 유틸리티
+   */
+  cleanForbiddenSymbols: function (text) {
+    if (!text) return "";
+    let cleaned = text;
+    // R² 치환
+    cleaned = cleaned.replace(/R²/g, "결정계수");
+    // 기호 치환
+    cleaned = cleaned.replace(/%/g, "퍼센트");
+    cleaned = cleaned.replace(/dB/g, "데시벨");
+    cleaned = cleaned.replace(/℃/g, "도");
+    cleaned = cleaned.replace(/²/g, "제곱");
+    cleaned = cleaned.replace(/³/g, "세제곱");
+    cleaned = cleaned.replace(/=/g, " ");
+    cleaned = cleaned.replace(/:/g, ""); // 콜론은 아예 제거
+    return cleaned;
   }
 };
 

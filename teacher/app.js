@@ -407,6 +407,9 @@ const App = {
 
       const card = document.createElement("div");
       card.className = "student-dashboard-card";
+      
+      const topicText = st.info.step_2?.선택_주제 || "주제 미선택";
+      
       card.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <h3 style="margin:0; font-size:1.1rem; color:var(--text-primary);">${st.info.student_name} <span style="font-size:0.8rem; font-weight:normal; color:var(--text-muted);">(${st.info.student_id})</span></h3>
@@ -414,9 +417,10 @@ const App = {
         </div>
         <div style="font-size:0.85rem; color:var(--text-secondary); line-height:1.6; margin-bottom:14px;">
           <div>📚 과목: <strong>${st.info.step_1.교과목.과목명}</strong> (${st.info.step_1.학년}학년 ${st.info.step_1.학급 || 1}반)</div>
+          <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${topicText}">💡 주제: <strong>${topicText}</strong></div>
           <div>🔗 매핑내용: ${activeMapping.length > 0 ? activeMapping.map(m => m.element.내용요소).join(", ") : "매핑 없음"}</div>
           <div style="margin-top:6px; display:flex; gap:8px;">
-            <span>🎖️ 고신뢰도(★★★): ${highConfidenceCount}개</span>
+            ${highConfidenceCount > 0 ? `<span>🎖️ 고신뢰도(★★★): ${highConfidenceCount}개</span>` : ""}
             ${warningCount > 0 ? `<span style="color:var(--warning-light);">⚠️ 검토필요: ${warningCount}개</span>` : ""}
           </div>
         </div>
@@ -710,6 +714,9 @@ const App = {
         else if (iss.type === "기재_유의어_대체필요") {
           title = "⚠️ 기재 유의어 사용 (금지)";
           color = "var(--warning-light)";
+        } else if (iss.type === "금지_기호_포함") {
+          title = "🚫 사용 제한 기호/단위 감지";
+          color = "var(--warning-light)";
         }
 
         let suffix = iss.suggestion ? ` (대체 권장: "<span style="color:var(--primary); font-weight:bold;">${iss.suggestion}</span>")` : " 표현 제거 필요";
@@ -813,6 +820,9 @@ const App = {
           else if (iss.type === "기재_유의어_대체필요") {
             title = "⚠️ 기재 유의어 사용 (금지)";
             color = "var(--warning-light)";
+          } else if (iss.type === "금지_기호_포함") {
+            title = "🚫 사용 제한 기호/단위 감지";
+            color = "var(--warning-light)";
           }
 
           let suffix = iss.suggestion ? ` (대체 권장: "<span style="color:var(--primary); font-weight:bold;">${iss.suggestion}</span>")` : " 표현 제거 필요";
@@ -848,6 +858,7 @@ const App = {
     const textarea = document.getElementById("setuk-main-textarea");
     if (!textarea) return;
 
+    const scrollTop = textarea.scrollTop;
     const startPos = textarea.selectionStart;
     const endPos = textarea.selectionEnd;
     const text = textarea.value;
@@ -856,11 +867,13 @@ const App = {
     const afterText = text.substring(endPos, text.length);
 
     textarea.value = beforeText + word + afterText;
-    textarea.focus();
+    textarea.focus({ preventScroll: true });
 
     const newPos = startPos + word.length;
     textarea.selectionStart = newPos;
     textarea.selectionEnd = newPos;
+
+    textarea.scrollTop = scrollTop;
 
     this.handleSetukTextareaInput(textarea.value);
   },
