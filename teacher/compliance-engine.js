@@ -375,6 +375,135 @@ const ComplianceEngine = {
   },
 
   /**
+   * 세특 문장 구조 정화 유틸리티 (주어 제거, 어미를 음슴체/명사형 종결로 보정)
+   */
+  cleanSentenceStructures: function (text) {
+    if (!text) return "";
+    let cleaned = text;
+
+    // 1. "본 탐구에서는", "본 연구에서는", "본 실험에서는", "본 보고서에서는" 등 조사 표현 제거
+    cleaned = cleaned.replace(/본\s+(탐구|실험|연구|보고서|분석)(에서는?|은?|이?|을?|를?|와?|과?)\s*/gi, "");
+    cleaned = cleaned.replace(/(나|우리)는?\s*/g, "");
+
+    // 2. 불필요하게 반복되는 주어 "학생은", "학생이" 제거
+    cleaned = cleaned.replace(/\b학생은\s+/g, "");
+    cleaned = cleaned.replace(/\b학생이\s+/g, "");
+
+    // 3. 문장 단위로 분할하여 개별 문장의 어미 변환
+    // 문장 마침표(.)를 기준으로 분할하되, 마침표를 포함하여 분할
+    const sentences = cleaned.split(/(\.\s*)/);
+    let resultSentences = [];
+
+    for (let i = 0; i < sentences.length; i++) {
+      let s = sentences[i];
+      if (!s) continue;
+      
+      // 마침표나 공백만 있는 항목은 그대로 결합
+      if (/^\s*\.?\s*$/.test(s)) {
+        resultSentences.push(s);
+        continue;
+      }
+
+      // 문장의 앞뒤 공백 제거
+      let trimmed = s.trim();
+
+      // 어미 변환 규칙 적용 (마침표가 오는 문장의 끝부분 보정)
+      // 한국어 동사/형용사 평서문 어미(~다)를 명사형 종결 어미(~함, ~음, ~임)로 변환
+      const verbRules = [
+        // ~한다 -> ~함
+        { pattern: /(관찰|분석|규명|도출|측정|기록|설계|비교|확인|증명|유도|수행|해결|탐색|작성|확립|정량화|포착|조사|평가|추론|해석|제시|발표|적용)한다$/, replace: "$1함" },
+        { pattern: /(관찰|분석|규명|도출|측정|기록|설계|비교|확인|증명|유도|수행|해결|탐색|작성|확립|정량화|포착|조사|평가|추론|해석|제시|발표|적용)했다$/, replace: "$1함" },
+        { pattern: /(관찰|분석|규명|도출|측정|기록|설계|비교|확인|증명|유도|수행|해결|탐색|작성|확립|정량화|포착|조사|평가|추론|해석|제시|발표|적용)하였다$/, replace: "$1함" },
+        
+        // 일반 동사/형용사 변환
+        { pattern: /한다$/, replace: "함" },
+        { pattern: /했다$/, replace: "함" },
+        { pattern: /하였다$/, replace: "함" },
+        { pattern: /되었다$/, replace: "됨" },
+        { pattern: /된다$/, replace: "됨" },
+        { pattern: /이다$/, replace: "임" },
+        { pattern: /아니다$/, replace: "아님" },
+        { pattern: /보인다$/, replace: "보임" },
+        { pattern: /보였다$/, replace: "보임" },
+        { pattern: /드러낸다$/, replace: "드러냄" },
+        { pattern: /드러냈다$/, replace: "드러냄" },
+        { pattern: /드러내었다$/, replace: "드러냄" },
+        { pattern: /나타난다$/, replace: "나타남" },
+        { pattern: /나타냈다$/, replace: "나타남" },
+        { pattern: /나타났다$/, replace: "나타남" },
+        { pattern: /기여했다$/, replace: "기여함" },
+        { pattern: /기여한다$/, replace: "기여함" },
+        { pattern: /발휘했다$/, replace: "발휘함" },
+        { pattern: /발휘한다$/, replace: "발휘함" },
+        { pattern: /돋보인다$/, replace: "돋보임" },
+        { pattern: /돋보였다$/, replace: "돋보임" },
+        { pattern: /가진다$/, replace: "가짐" },
+        { pattern: /가졌다$/, replace: "가짐" },
+        { pattern: /이루어진다$/, replace: "이루어짐" },
+        { pattern: /이루어졌다$/, replace: "이루어짐" },
+        { pattern: /이룬다$/, replace: "이룸" },
+        { pattern: /이루었다$/, replace: "이룸" },
+        { pattern: /얻는다$/, replace: "얻음" },
+        { pattern: /얻었다$/, replace: "얻음" },
+        { pattern: /배운다$/, replace: "배움" },
+        { pattern: /배웠다$/, replace: "배움" },
+        { pattern: /깨닫는다$/, replace: "깨달음" },
+        { pattern: /깨달았다$/, replace: "깨달음" },
+        { pattern: /노력한다$/, replace: "노력함" },
+        { pattern: /노력했다$/, replace: "노력함" },
+        { pattern: /시도한다$/, replace: "시도함" },
+        { pattern: /시도했다$/, replace: "시도함" },
+        { pattern: /발표한다$/, replace: "발표함" },
+        { pattern: /발표했다$/, replace: "발표함" },
+        { pattern: /설명한다$/, replace: "설명함" },
+        { pattern: /설명했다$/, replace: "설명함" },
+        { pattern: /해석한다$/, replace: "해석함" },
+        { pattern: /해석했다$/, replace: "해석함" },
+        { pattern: /제시한다$/, replace: "제시함" },
+        { pattern: /제시했다$/, replace: "제시함" },
+        { pattern: /보여준다$/, replace: "보여줌" },
+        { pattern: /보여주었다$/, replace: "보여줌" },
+        { pattern: /있었다$/, replace: "있었음" },
+        { pattern: /있다$/, replace: "있음" },
+        { pattern: /없다$/, replace: "없음" },
+        { pattern: /같다$/, replace: "같음" },
+        { pattern: /어렵다$/, replace: "어려움" },
+        { pattern: /쉽다$/, replace: "쉬움" },
+        { pattern: /즐겁다$/, replace: "즐거움" },
+        { pattern: /아름답다$/, replace: "아름다움" },
+        { pattern: /가깝다$/, replace: "가까움" },
+
+        // 특정 형용사
+        { pattern: /([높낮깊넓밝같없있])다$/, replace: "$1음" },
+        
+        // 크다, 빠르다, 느리다, 보내다, 되다 등
+        { pattern: /([가-힣]?)([크르리내되])다$/, replace: "$1$2ㅁ" },
+
+        // 일반적인 ㄴ다/는다/다 종결
+        { pattern: /([가-힣])ㄴ다$/, replace: "$1ㅁ" },
+        { pattern: /([가-힣])는다$/, replace: "$1음" },
+        { pattern: /([가-힣])었다$/, replace: "$1었음" },
+        { pattern: /([가-힣])았다$/, replace: "$1았음" },
+        { pattern: /([가-힣])였다$/, replace: "$1였음" },
+        { pattern: /([가-힣])하다$/, replace: "$1함" },
+        { pattern: /([가-힣])되다$/, replace: "$1됨" }
+      ];
+
+      let converted = trimmed;
+      for (let rule of verbRules) {
+        if (rule.pattern.test(converted)) {
+          converted = converted.replace(rule.pattern, rule.replace);
+          break; // 매칭된 첫 번째 규칙만 적용
+        }
+      }
+
+      resultSentences.push(converted);
+    }
+
+    return resultSentences.join("");
+  },
+
+  /**
    * 금지 기호 및 특수 단위 한글 정화 치환 유틸리티
    */
   cleanForbiddenSymbols: function (text) {
