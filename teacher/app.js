@@ -1547,6 +1547,31 @@ const App = {
       return;
     }
 
+    const provider = localStorage.getItem("active_ai_provider") || "gemini";
+    let apiKey = "";
+    if (provider === "gemini") apiKey = localStorage.getItem("gemini_api_key");
+    else if (provider === "openai") apiKey = localStorage.getItem("openai_api_key");
+    else if (provider === "claude") apiKey = localStorage.getItem("claude_api_key");
+
+    if (!apiKey) {
+      const providerName = provider === "gemini" ? "Google Gemini" : provider === "openai" ? "OpenAI ChatGPT" : "Anthropic Claude";
+      const key = prompt(`실시간 AI 문장 정제 및 교정(${providerName})을 위한 API 키가 입력되지 않았습니다.\nAPI 키를 입력해주세요 (입력하지 않으면 로컬 기본 규칙으로만 정제합니다):`);
+      if (key) {
+        const cleanedKey = key.trim().replace(/[^A-Za-z0-9_\-]/g, "");
+        if (provider === "gemini") {
+          localStorage.setItem("gemini_api_key", cleanedKey);
+          this.geminiApiKey = cleanedKey;
+        } else if (provider === "openai") {
+          localStorage.setItem("openai_api_key", cleanedKey);
+        } else if (provider === "claude") {
+          localStorage.setItem("claude_api_key", cleanedKey);
+        }
+        apiKey = cleanedKey;
+      } else {
+        alert("API 키가 없어 로컬 기본 규칙(괄호, 가운데점, 특수문자 제거 등)으로만 정제합니다.");
+      }
+    }
+
     textarea.disabled = true;
     const originalPlaceholder = textarea.placeholder;
     textarea.placeholder = "AI가 세특 문장을 정제 및 교정 중입니다...";
@@ -1568,11 +1593,26 @@ const App = {
       this.renderRightSetukEditor(student);
       this.saveStudentStateToCache(student);
     } catch (e) {
-      alert("AI 세특 정제 중 오류가 발생했습니다: " + e.message);
-      textarea.value = originalText;
+      alert("AI 세특 정제 중 오류가 발생했습니다: " + e.message + "\n\n로컬 기본 규칙으로 대체 정제합니다.");
+      
+      // AI 호출 실패 시 시뮬레이션 모드로 대체하여 교사 입력 내용 보존 및 정제
+      const refinedText = AIEngine.simulateRefineSetuk(rawText);
+      student.finalSetuk = refinedText;
+      
+      const currentVariant = student.setukVariants.find(v => v.length === this.activeSetukLength);
+      if (currentVariant) {
+        currentVariant.text = refinedText;
+        currentVariant.characters = refinedText.length;
+      }
+      student.safetyResult = ComplianceEngine.safetyCheck(refinedText);
+      this.renderRightSetukEditor(student);
+      this.saveStudentStateToCache(student);
     } finally {
-      textarea.disabled = false;
-      textarea.placeholder = originalPlaceholder;
+      const newTextarea = document.getElementById("setuk-main-textarea");
+      if (newTextarea) {
+        newTextarea.disabled = false;
+        newTextarea.placeholder = originalPlaceholder;
+      }
     }
   }
 };

@@ -603,8 +603,8 @@ ${rawText}
       cleaned = ComplianceEngine.cleanForbiddenSymbols(cleaned);
       return cleaned;
     } catch (e) {
-      console.warn("세특 정제 API 호출 실패, 시뮬레이션 모드로 전환합니다.", e);
-      return this.simulateRefineSetuk(rawText);
+      console.error("세특 정제 API 호출 오류:", e);
+      throw e;
     }
   },
 
