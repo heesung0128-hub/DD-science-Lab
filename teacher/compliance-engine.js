@@ -346,7 +346,7 @@ const ComplianceEngine = {
       });
     }
 
-    // 7. 금지 기호 및 수학/단위 기호 검증
+    // 7. 금지 기호 및 수학/단위 기호 검증 (가운데점, 괄호, 굵은글씨 포함)
     const forbiddenSymbols = [
       { regex: /:/g, term: ":", type: "금지_기호_포함", suggestion: "제거 또는 공백" },
       { regex: /=/g, term: "=", type: "금지_기호_포함", suggestion: "한글 설명으로 대체" },
@@ -354,7 +354,10 @@ const ComplianceEngine = {
       { regex: /dB/g, term: "dB", type: "금지_기호_포함", suggestion: "데시벨" },
       { regex: /℃/g, term: "℃", type: "금지_기호_포함", suggestion: "도" },
       { regex: /R²/g, term: "R²", type: "금지_기호_포함", suggestion: "결정계수" },
-      { regex: /[²³]/g, term: "제곱 기호", type: "금지_기호_포함", suggestion: "제곱/세제곱" }
+      { regex: /[²³]/g, term: "제곱 기호", type: "금지_기호_포함", suggestion: "제곱/세제곱" },
+      { regex: /·/g, term: "· (가운데 점)", type: "금지_기호_포함", suggestion: "공백 또는 한글 단어로 대체" },
+      { regex: /[\(\)]/g, term: "괄호", type: "금지_기호_포함", suggestion: "괄호 제거 및 텍스트 띄어쓰기로 수정" },
+      { regex: /\*\*/g, term: "굵은 글씨 (bold)", type: "금지_기호_포함", suggestion: "굵은 글씨 마크다운 제거" }
     ];
 
     forbiddenSymbols.forEach(item => {
@@ -509,6 +512,8 @@ const ComplianceEngine = {
   cleanForbiddenSymbols: function (text) {
     if (!text) return "";
     let cleaned = text;
+    // 굵은 글씨 제거
+    cleaned = cleaned.replace(/\*\*/g, "");
     // R² 치환
     cleaned = cleaned.replace(/R²/g, "결정계수");
     // 기호 치환
@@ -519,7 +524,13 @@ const ComplianceEngine = {
     cleaned = cleaned.replace(/³/g, "세제곱");
     cleaned = cleaned.replace(/=/g, " ");
     cleaned = cleaned.replace(/:/g, ""); // 콜론은 아예 제거
-    return cleaned;
+    // 가운데 점(·) 제거
+    cleaned = cleaned.replace(/·/g, " ");
+    // 괄호 ( ) 제거 및 띄어쓰기 변환
+    cleaned = cleaned.replace(/\(/g, " ").replace(/\)/g, "");
+    // 연속된 공백 하나로 정리
+    cleaned = cleaned.replace(/\s+/g, " ");
+    return cleaned.trim();
   }
 };
 
