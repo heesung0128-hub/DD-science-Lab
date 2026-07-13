@@ -685,9 +685,10 @@ const App = {
     editorContainer.className = "setuk-textarea-container";
     editorContainer.innerHTML = `
       <textarea id="setuk-main-textarea" class="setuk-editor-textarea" oninput="App.handleSetukTextareaInput(this.value)">${student.finalSetuk}</textarea>
-      <div style="display:flex; justify-content:space-between; margin-top:8px; font-size:0.8rem; color:var(--text-muted); flex-wrap:wrap; gap:6px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; font-size:0.8rem; color:var(--text-muted); flex-wrap:wrap; gap:6px;">
         <span>글자 수: <strong id="setuk-char-count" style="color:var(--text-primary);">${student.finalSetuk.length}</strong>자</span>
         <span>바이트 수: <strong id="setuk-byte-count" style="color:${bytes > 1500 ? "var(--danger)" : "var(--text-primary)"};">${bytes}</strong> / 1500 Bytes ${byteWarning}</span>
+        <button class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem; border-color:var(--primary); background:rgba(0,180,216,0.06); color:var(--primary); font-weight:600; cursor:pointer;" onclick="App.triggerRefineSetuk()">🤖 AI 문장 정제 및 교정</button>
       </div>
     `;
     editorArea.appendChild(editorContainer);
@@ -1528,6 +1529,51 @@ const App = {
       event.target.value = "";
     };
     reader.readAsText(file);
+  },
+
+  /**
+   * 에디터 영역 세특 AI 정제 및 교정 기능 구동
+   */
+  triggerRefineSetuk: async function () {
+    const student = this.students[this.activeStudentIndex];
+    if (!student) return;
+
+    const textarea = document.getElementById("setuk-main-textarea");
+    if (!textarea) return;
+
+    const rawText = textarea.value;
+    if (!rawText.trim()) {
+      alert("정제할 세특 텍스트가 입력되지 않았습니다.");
+      return;
+    }
+
+    textarea.disabled = true;
+    const originalPlaceholder = textarea.placeholder;
+    textarea.placeholder = "AI가 세특 문장을 정제 및 교정 중입니다...";
+    
+    const originalText = textarea.value;
+    textarea.value = "AI 분석 및 문맥 교정 중...";
+
+    try {
+      const refinedText = await AIEngine.refineSetuk(rawText);
+      student.finalSetuk = refinedText;
+      
+      const currentVariant = student.setukVariants.find(v => v.length === this.activeSetukLength);
+      if (currentVariant) {
+        currentVariant.text = refinedText;
+        currentVariant.characters = refinedText.length;
+      }
+      
+      student.safetyResult = ComplianceEngine.safetyCheck(refinedText);
+      this.renderRightSetukEditor(student);
+      this.saveStudentStateToCache(student);
+    } catch (e) {
+      alert("AI 세특 정제 중 오류가 발생했습니다: " + e.message);
+      textarea.value = originalText;
+    } finally {
+      textarea.disabled = false;
+      textarea.placeholder = originalPlaceholder;
+    }
   }
 };
 
