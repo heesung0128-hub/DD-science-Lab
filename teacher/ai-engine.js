@@ -611,6 +611,25 @@ ${rawText}
   simulateRefineSetuk: function (rawText) {
     if (!rawText) return "";
     let cleaned = rawText;
+    
+    // 1단계, 2단계 등의 템플릿 목차형 표현 제거
+    cleaned = cleaned.replace(/\b[1-8]\s*(단계|Step)\s*:?\s*/g, "");
+    
+    // 중복어구 제거 (결정 계수 결정계수 -> 결정계수)
+    cleaned = cleaned.replace(/결정\s*계수\s*결정계수/g, "결정계수");
+    cleaned = cleaned.replace(/결정계수\s*결정계수/g, "결정계수");
+    
+    // 지배 방정식 -> 수학적 모델식 (전문 용어 하향 조정)
+    cleaned = cleaned.replace(/지배\s*방정식/g, "수학적 모델식");
+    
+    // 슬래시(/) 등의 제한 기호 제거
+    cleaned = cleaned.replace(/물리\/수학적\s*공식/g, "물리 수학적 공식");
+    cleaned = cleaned.replace(/\//g, " 및 ");
+    
+    // 비문 교정 (~증대시킨다. 결론을 도출함. -> ~증대시킨다는 결론을 도출함.)
+    cleaned = cleaned.replace(/증대시킨다\.\s*결론을\s*도출함/g, "증대시킨다는 결론을 도출함");
+    cleaned = cleaned.replace(/시킨다\.\s*결론을\s*도출함/g, "시킨다는 결론을 도출함");
+    
     // 기본적인 치환 및 문장구조 필터 적용
     cleaned = ComplianceEngine.cleanSentenceStructures(cleaned);
     cleaned = ComplianceEngine.cleanForbiddenSymbols(cleaned);

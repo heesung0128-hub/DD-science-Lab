@@ -388,9 +388,9 @@ const ComplianceEngine = {
     cleaned = cleaned.replace(/본\s+(탐구|실험|연구|보고서|분석)(에서는?|은?|이?|을?|를?|와?|과?)\s*/gi, "");
     cleaned = cleaned.replace(/(나|우리)는?\s*/g, "");
 
-    // 2. 불필요하게 반복되는 주어 "학생은", "학생이" 제거
-    cleaned = cleaned.replace(/\b학생은\s+/g, "");
-    cleaned = cleaned.replace(/\b학생이\s+/g, "");
+    // 2. 불필요하게 반복되는 주어 "학생은", "학생이" 제거 (자바스크립트 한글 \b 바운더리 버그 예방을 위해(^|\s) 사용)
+    cleaned = cleaned.replace(/(^|\s)학생은\s+/g, "$1");
+    cleaned = cleaned.replace(/(^|\s)학생이\s+/g, "$1");
 
     // 3. 문장 단위로 분할하여 개별 문장의 어미 변환
     // 문장 마침표(.)를 기준으로 분할하되, 마침표를 포함하여 분할
