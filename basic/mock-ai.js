@@ -279,6 +279,9 @@ const MockAI = {
       }
       throw new Error("Invalid response format");
     } catch (e) {
+      if (activeKey) {
+        alert("실시간 AI 진로 키워드 분석 중 오류가 발생했습니다:\n" + e.message + "\n\n로컬 기본 키워드로 대체합니다.");
+      }
       console.warn("AI suggestKeywords failed, falling back to static list.", e);
       const fb = [...fallbackKeywords];
       fb.isFallback = true;
@@ -415,6 +418,9 @@ ${ragContextStr}
       return parsed;
 
     } catch (e) {
+      if (activeKey) {
+        alert("실시간 AI 탐구 주제 추천 중 오류가 발생했습니다:\n" + e.message + "\n\n로컬 시뮬레이션 추천으로 대체합니다.");
+      }
       console.warn("실시간 AI 제안 API 호출 실패. 모의 AI 모드로 안전하게 전환합니다.", e);
       const fallbackTopics = this.generateSimulatedTopics(subject, kwList, motivation, forceDirect);
       fallbackTopics.isFallback = true;
@@ -473,6 +479,9 @@ ${ragContextStr}
       return parsed;
 
     } catch (e) {
+      if (activeKey) {
+        alert("실시간 AI 피드백 분석 중 오류가 발생했습니다:\n" + e.message + "\n\n로컬 시뮬레이션 피드백으로 대체합니다.");
+      }
       console.warn("실시간 AI 예문 추천 생성 실패. 모의 모드로 전환합니다.", e);
       return this.simulateGetSuggestions(step, field, report);
     }
@@ -718,6 +727,9 @@ ${ragContextStr}
       return parsed;
 
     } catch (e) {
+      if (activeKey) {
+        alert("실시간 AI 교육과정 자가진단 중 오류가 발생했습니다:\n" + e.message + "\n\n로컬 시뮬레이션 자가진단으로 대체합니다.");
+      }
       console.warn("실시간 AI 자기점검 평가 실패. 모의 AI 모드로 전환합니다.", e);
       return this.simulateSelfCheckConnection(subject, report);
     }
@@ -1061,6 +1073,9 @@ ${ragContextStr}
       return parsed;
 
     } catch (e) {
+      if (activeKey) {
+        alert("실시간 AI 탐구 변수 설계 중 오류가 발생했습니다:\n" + e.message + "\n\n로컬 시뮬레이션 변수 추천으로 대체합니다.");
+      }
       console.warn("실시간 AI 변인 설계 제안 실패. 모의 모드로 전환합니다.", e);
       return this.simulateSuggestVariables(subject, topic, inquiry_type, hypothesis, slots);
     }
