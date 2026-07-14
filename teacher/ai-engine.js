@@ -17,16 +17,13 @@ const AIEngine = {
         throw new Error("Gemini API 키가 등록되지 않았습니다.");
       }
       
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/interactions`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": apiKey,
-          "Api-Revision": "2026-05-20"
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          model: model,
-          input: prompt
+          contents: [{ parts: [{ text: prompt }] }]
         })
       });
 
@@ -35,18 +32,7 @@ const AIEngine = {
       }
 
       const data = await response.json();
-      let textResponse = "";
-      if (data && Array.isArray(data.steps)) {
-        for (const step of data.steps) {
-          if (step.type === "model_output" && Array.isArray(step.content)) {
-            for (const part of step.content) {
-              if (part.type === "text" && part.text) {
-                textResponse += part.text;
-              }
-            }
-          }
-        }
-      }
+      const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!textResponse) {
         throw new Error("Gemini API에서 빈 응답이 반환되었습니다.");
       }
