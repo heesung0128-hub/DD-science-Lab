@@ -9,7 +9,7 @@ const AIEngine = {
    */
   callLLM: async function (prompt) {
     const provider = localStorage.getItem("active_ai_provider") || "gemini";
-    const model = localStorage.getItem("active_ai_model") || (provider === "gemini" ? "gemini-2.5-flash" : provider === "openai" ? "gpt-4o-mini" : "claude-3-5-haiku-20241022");
+    const model = localStorage.getItem("active_ai_model") || (provider === "gemini" ? "gemini-3.5-flash" : provider === "openai" ? "gpt-4o-mini" : "claude-3-5-haiku-20241022");
     
     if (provider === "gemini") {
       const apiKey = localStorage.getItem("gemini_api_key");
@@ -17,13 +17,16 @@ const AIEngine = {
         throw new Error("Gemini API 키가 등록되지 않았습니다.");
       }
       
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/interactions`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
+          "Api-Revision": "2026-05-20"
         },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }]
+          model: model,
+          input: prompt
         })
       });
 
@@ -32,7 +35,18 @@ const AIEngine = {
       }
 
       const data = await response.json();
-      const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      let textResponse = "";
+      if (data && Array.isArray(data.steps)) {
+        for (const step of data.steps) {
+          if (step.type === "model_output" && Array.isArray(step.content)) {
+            for (const part of step.content) {
+              if (part.type === "text" && part.text) {
+                textResponse += part.text;
+              }
+            }
+          }
+        }
+      }
       if (!textResponse) {
         throw new Error("Gemini API에서 빈 응답이 반환되었습니다.");
       }
