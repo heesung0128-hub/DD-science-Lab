@@ -957,11 +957,9 @@ const App = {
       student.finalSetuk = setukData.variants.find(v => v.length === this.activeSetukLength).text;
       student.safetyResult = ComplianceEngine.safetyCheck(student.finalSetuk);
     } catch (err) {
-      // 시뮬레이션 폴백
-      const setukData = AIEngine.simulateSetuk(student.info, activeMap);
-      student.setukVariants = setukData.variants;
-      student.finalSetuk = setukData.variants.find(v => v.length === this.activeSetukLength).text;
-      student.safetyResult = ComplianceEngine.safetyCheck(student.finalSetuk);
+      alert("AI 세특 생성 중 오류가 발생했습니다: " + err.message);
+      setukContainer.innerHTML = `<div style='padding:40px; text-align:center; color:var(--danger);'>❌ 생성 실패: ${err.message}</div>`;
+      return;
     }
 
     this.renderRightSetukEditor(student);

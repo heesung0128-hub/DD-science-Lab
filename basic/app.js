@@ -1531,6 +1531,7 @@ const App = {
       });
     } catch (e) {
       console.error(e);
+      alert("키워드 추천 중 오류가 발생했습니다: " + e.message);
       box.innerHTML = "<div style='font-size:0.75rem; color:var(--danger); padding:8px;'>추천 키워드를 가져오지 못했습니다.</div>";
     }
   },

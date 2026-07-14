@@ -174,7 +174,7 @@ const AIEngine = {
 
     } catch (e) {
       if (apiKey) {
-        alert("실시간 AI 매핑 생성 중 오류가 발생했습니다:\n" + e.message + "\n\n로컬 시뮬레이션 데이터로 대체합니다.");
+        throw e;
       }
       console.warn("실시간 AI 매핑 오류, 지능형 시뮬레이션 모드로 전환합니다.", e);
       return this.simulateMapping(report, candidateElements);
@@ -288,7 +288,7 @@ const AIEngine = {
 
     } catch (e) {
       if (apiKey) {
-        alert("실시간 AI 세특 초안 생성 중 오류가 발생했습니다:\n" + e.message + "\n\n로컬 모의 시뮬레이션 데이터로 대체합니다.");
+        throw e;
       }
       console.warn("세특 AI 실시간 생성 실패, 시뮬레이션 모드로 전환합니다.", e);
       return this.simulateSetuk(report, mapping);
