@@ -87,7 +87,7 @@ const MockAI = {
    */
   callLLM: async function (prompt) {
     const provider = localStorage.getItem("active_ai_provider") || "gemini";
-    const model = localStorage.getItem("active_ai_model") || (provider === "gemini" ? "gemini-3.5-flash" : provider === "openai" ? "gpt-4o-mini" : "claude-3-5-haiku-20241022");
+    const model = localStorage.getItem("active_ai_model") || (provider === "gemini" ? "gemini-3.1-flash-lite" : provider === "openai" ? "gpt-4o-mini" : "claude-3-5-haiku-20241022");
     
     if (provider === "gemini-web-bridge") {
       return await this.callWebBridge(prompt);

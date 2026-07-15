@@ -1394,9 +1394,9 @@ const App = {
     
     const models = {
       gemini: [
-        { value: "gemini-3.5-flash", text: "gemini-3.5-flash (기본 - 최신 표준 모델)" },
+        { value: "gemini-3.5-flash", text: "gemini-3.5-flash (최신 표준 모델)" },
         { value: "gemini-3.1-pro-preview", text: "gemini-3.1-pro-preview (최신 고성능 추론 모델)" },
-        { value: "gemini-3.1-flash-lite", text: "gemini-3.1-flash-lite (최신 고속/경량화 모델)" },
+        { value: "gemini-3.1-flash-lite", text: "gemini-3.1-flash-lite (최신 고속/경량화 모델 - 기본)" },
         { value: "gemini-2.5-flash", text: "gemini-2.5-flash (기존 표준 모델)" },
         { value: "gemini-2.5-pro", text: "gemini-2.5-pro (기존 고성능 모델)" }
       ],
